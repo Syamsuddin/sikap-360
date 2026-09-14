@@ -1,0 +1,11 @@
+--- public/api.php	2026-09-12 22:19:38
++++ public/api.php	2026-09-13 09:31:22
+@@ -9,7 +9,7 @@
+  if(!str_starts_with(strtolower($_SERVER['CONTENT_TYPE']??''),'application/json'))throw new ApiError('Content-Type harus application/json.',415);
+  if((int)($_SERVER['CONTENT_LENGTH']??0)>65536)throw new ApiError('Permintaan terlalu besar.',413);
+  $expected=parse_url($config['app_url']);$origin=isset($_SERVER['HTTP_ORIGIN'])?parse_url($_SERVER['HTTP_ORIGIN']):null;
+- if($origin && (($origin['host']??'')!==($expected['host']??'')||($origin['scheme']??'')!==($expected['scheme']??'')||($origin['port']??null)!==($expected['port']??null)))throw new ApiError('Origin tidak diizinkan.',403);
++ if($origin!==null && (!is_array($origin)||($origin['host']??'')!==($expected['host']??'')||($origin['scheme']??'')!==($expected['scheme']??'')||($origin['port']??null)!==($expected['port']??null)))throw new ApiError('Origin tidak diizinkan.',403);
+  ini_set('session.use_strict_mode','1');ini_set('session.use_only_cookies','1');session_name('SIKAPSESSID');session_set_cookie_params(['httponly'=>true,'secure'=>$config['secure_cookie'],'samesite'=>'Strict','path'=>'/']);session_start();
+  $raw=file_get_contents('php://input',false,null,0,65537);if(strlen($raw)>65536)throw new ApiError('Permintaan terlalu besar.',413);
+  $body=json_decode($raw,true,32,JSON_THROW_ON_ERROR);if(!is_array($body))throw new ApiError('Format permintaan tidak valid.');

@@ -1,0 +1,35 @@
+services:
+  app:
+    build: .
+    ports:
+      - "127.0.0.1:8080:80"
+    environment:
+      DB_HOST: db
+      DB_DATABASE: ${DB_DATABASE:-sikap360}
+      DB_USERNAME: ${DB_USERNAME:-sikap}
+      DB_PASSWORD: ${DB_PASSWORD:?Tetapkan DB_PASSWORD pada .env}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Makassar}
+      SESSION_SECURE: ${SESSION_SECURE:-0}
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:-}
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+  db:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: ${DB_DATABASE:-sikap360}
+      MYSQL_USER: ${DB_USERNAME:-sikap}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?Tetapkan DB_PASSWORD pada .env}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Tetapkan MYSQL_ROOT_PASSWORD pada .env}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  mysql_data:

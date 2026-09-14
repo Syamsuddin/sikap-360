@@ -1,0 +1,19 @@
+# Sesuaikan server_name, root, socket PHP-FPM, dan terminasi TLS.
+server {
+    listen 80;
+    server_name sikap.example.go.id;
+    root /var/www/sikap360/public;
+    index index.php;
+    client_max_body_size 1m;
+    add_header X-Content-Type-Options nosniff always;
+    add_header Referrer-Policy same-origin always;
+    location / { try_files $uri $uri/ /index.php; }
+    location ~ ^/(index|api)\.php$ {
+        include fastcgi_params;
+        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
+        fastcgi_pass unix:/run/php/php8.3-fpm.sock;
+    }
+    location ~ \.php$ { return 404; }
+    location ~ /\. { deny all; }
+    location = /index.html { return 404; }
+}

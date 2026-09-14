@@ -1,0 +1,24 @@
+# Dependensi
+node_modules/
+
+# Rahasia dan konfigurasi lokal
+.env
+config/local.php
+.claude/
+*.code-workspace
+
+# Runtime dan artefak uji
+.sites-runtime/
+storage/
+.qa/tmp/
+test-results/
+playwright-report/
+
+# Backup database
+database/backup-*.sql
+
+# Keluaran alat
+graphify-out/
+
+# Sistem operasi
+.DS_Store

@@ -1,0 +1,57 @@
+# Changelog
+
+Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.1.0/) dan penomoran versi mengikuti [Semantic Versioning](https://semver.org/lang/id/).
+
+Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
+
+## [1.2.0] - 2026-09-13
+
+### Ditambahkan
+- Multi-OPD dalam satu kabupaten: tabel `opd` dan `settings` (nama kabupaten dinamis, bawaan Hulu Sungai Selatan), kolom `employees.opd_id`, serta menu OPD & pengaturan untuk administrator kabupaten.
+- Peran **Admin OPD** (`admin_opd`) yang mengelola pegawai, struktur organisasi, dan pasangan penilai terbatas pada OPD-nya sendiri; `employees` dan `assignments` pada bootstrap disaring per OPD.
+- Periode triwulan (`app/Period.php`): periode dibuat dari tahun dan triwulan (I–IV), nama dan rentang tanggal ditetapkan otomatis, satu triwulan hanya bisa dibuat sekali.
+- Periode default pada bootstrap memprioritaskan `open`, lalu `closed`, `published`, dan terakhir `draft`, sehingga periode draf masa depan tidak mengosongkan daftar tugas ASN.
+- Konfigurasi `TRUSTED_PROXIES` agar pembatasan login membaca IP klien dari `X-Forwarded-For` hanya dari reverse proxy tepercaya; ambang per-akun (10) dan per-IP (100) dipisah.
+- Seeder demo: lima OPD, 60 pegawai fiktif, struktur organisasi tiap OPD, dua periode triwulan, distribusi penilai turunan struktur; daftar akun pada `USERS.md`.
+- Rangkaian pengujian PHP: `unit_scoring_edge`, `unit_period`, `integration_db`, `api_invariants`, `functional_flows`, `structure_flows`, `opd_flows`, dengan `tests/bootstrap.php` dan `tests/http_client.php`; E2E Playwright (`e2e/qa-crawl.spec.ts`, Chromium desktop dan Pixel 5).
+- Paket QA 8 tahap pada `.qa/` (spesifikasi, skrip, laporan `QA-2026-09-13.md`) dan dokumentasi API pada `docs/API.md`.
+- Migrasi `database/upgrade-1.2-opd.sql`: setiap nilai `employees.unit` lama menjadi satu OPD.
+
+### Diubah
+- Adapter pratinjau `demo.js` dipindah ke `resources/` dan disalin ke `dist/assets/` saat build; tidak lagi ikut terpasang pada aplikasi live.
+- Zona waktu sesi MySQL disamakan dengan zona waktu aplikasi (`app/Database.php`) agar `submitted_at` dan `published_at` konsisten.
+- `session.gc_maxlifetime` disamakan dengan batas tidak aktif sesi (1800 detik).
+- Baris `login_attempts` lebih dari satu hari dibersihkan pada tiap login.
+- Pelanggaran `CHECK` MySQL (errno 3819) dipetakan ke HTTP 422, bukan 503.
+- `.dockerignore` mengecualikan `.qa`, `e2e`, `test-results`, dan `playwright.config.ts`; Apache pada image Docker menolak akses langsung `index.html` setara contoh Nginx.
+- Kunci indikator pada jawaban wajib bilangan bulat kanonik (`"01"` atau `" 1"` ditolak dengan 422).
+
+### Diperbaiki
+- Header `Origin` yang ada tetapi tidak dapat di-parse kini ditolak dengan 403, bukan diperlakukan sebagai tanpa Origin (QA BUG-001).
+- Periode draf berstatus masa depan tidak lagi menjadi periode default seluruh pengguna (QA BUG-002).
+
+## [1.1.0] - 2026-09-13
+
+### Ditambahkan
+- Struktur organisasi: kolom `employees.supervisor_id` (atasan langsung) dan halaman Struktur organisasi.
+- Rekan sejawat (pegawai dengan atasan yang sama) dan bawahan langsung diturunkan otomatis dari struktur; halaman menampilkan keabsahan komposisi penilai tiap pegawai.
+- Tombol Buat penugasan untuk mengisi pasangan penilai suatu periode dari struktur organisasi; kelompok rekan/bawahan kurang dari tiga orang dilewati dan dilaporkan.
+- Migrasi `database/upgrade-1.1-struktur.sql` untuk instalasi yang dibuat sebelum fitur struktur organisasi.
+
+## [1.0.0] - 2026-09-12
+
+### Ditambahkan
+- Aplikasi penilaian perilaku ASN berbasis PHP 8.3, MySQL 8, Tailwind CSS 4, dan daisyUI 5 dengan tujuh indikator BerAKHLAK berskala 1–5.
+- Login lokal dengan dua hak akses (administrator dan ASN), sesi HttpOnly/SameSite=Strict, token CSRF, pembatasan percobaan login, dan PDO prepared statements.
+- Dashboard tugas, progres, profil, batas periode, serta pencarian dan penyaringan tugas menurut hubungan dan status.
+- Draf parsial tersimpan di server, validasi tujuh jawaban, pengiriman satu atau beberapa draf dalam satu transaksi, penguncian jawaban setelah dikirim, dan nomor versi draf (optimistic locking, HTTP 409).
+- Hasil pribadi gabungan dengan bobot Atasan/Rekan/Bawahan (60/25/15, 75/25/0, 85/0/15), konversi skala 20–100, grafik indikator, pilihan periode, dan cetak melalui browser.
+- Administrasi pegawai dan akun ASN, ganti kata sandi (membatalkan sesi lain melalui `auth_version`), ekspor CSV.
+- Siklus periode draft → open → closed → published, buka kembali periode yang belum dipublikasikan, validasi komposisi penilai saat dibuka, dan publikasi hanya bila seluruh penugasan terkirim.
+- Audit tindakan pada tabel `audit_logs`.
+- Instalasi CLI (`scripts/install.php`, mode demo dan mode kosong), Docker Compose, contoh konfigurasi Nginx, dan pratinjau statis `dist/` dengan data fiktif.
+- Pengujian aturan penilaian `tests/scoring.php` (17 kasus) dan catatan validasi `docs/VALIDASI.md`.
+
+[1.2.0]: https://github.com/Syamsuddin/sikap-360/releases/tag/v1.2.0
+[1.1.0]: https://github.com/Syamsuddin/sikap-360/compare/v1.0.0...v1.1.0
+[1.0.0]: https://github.com/Syamsuddin/sikap-360/releases/tag/v1.0.0

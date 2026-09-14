@@ -1,0 +1,12 @@
+node_modules
+.git
+.env
+.openai
+.sites-runtime
+dist
+tests
+validation
+.qa
+e2e
+test-results
+playwright.config.ts

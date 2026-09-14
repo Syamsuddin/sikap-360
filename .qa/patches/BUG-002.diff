@@ -1,0 +1,11 @@
+--- app/Api.php	2026-09-12 22:19:38
++++ app/Api.php	2026-09-13 09:31:22
+@@ -58,7 +58,7 @@
+  private function bootstrap(int $periodId): array
+  {
+   $periods=$this->all('SELECT * FROM periods ORDER BY start_date DESC,id DESC');if(!$periods)throw new ApiError('Belum ada periode. Jalankan instalasi awal.',409);
+-  if(!$periodId||!array_filter($periods,static fn($p)=>(int)$p['id']===$periodId))$periodId=(int)$periods[0]['id'];
++  if(!$periodId||!array_filter($periods,static fn($p)=>(int)$p['id']===$periodId)){$default=null;foreach(['open','closed','published'] as $status){foreach($periods as $p)if($p['status']===$status){$default=$p;break 2;}}$periodId=(int)($default??$periods[0])['id'];}
+   $p=$this->period($periodId);$ind=$this->indicators();$tasks=$this->all('SELECT id,period_id,subject_id,rater_role,status,version,feedback FROM assignments WHERE period_id=? AND rater_id=? ORDER BY id',[$periodId,$this->user['id']]);
+   foreach($tasks as &$t){$t['answers']=(object)$this->answersFor((int)$t['id']);$t['employee']=$this->one('SELECT id,name,nip,position,unit,grade FROM employees WHERE id=?',[$t['subject_id']]);}
+   $result=Scoring::calculate($this->scoringRows($periodId,(int)$this->user['id']),$ind);$result['published']=$p['status']==='published';$result['visible']=$result['complete']&&($result['published']||$this->user['role']==='admin');

@@ -1,0 +1,29 @@
+<?php
+declare(strict_types=1);
+require dirname(__DIR__).'/app/Scoring.php';
+$passed=0;
+function check(bool $condition,string $name): void {global $passed;if(!$condition)throw new RuntimeException('FAIL: '.$name);$passed++;echo 'PASS: '.$name."\n";}
+function rejects(callable $fn,string $name): void {try{$fn();}catch(DomainException){check(true,$name);return;}check(false,$name);}
+$indicators=array_map(static fn($id)=>['id'=>$id,'name'=>'Indikator '.$id],range(1,7));
+$make=static fn($role,$score,$status='submitted')=>['rater_role'=>$role,'status'=>$status,'answers'=>array_fill_keys(range(1,7),$score)];
+$rows=[$make('atasan',5),$make('rekan',4),$make('rekan',4),$make('rekan',4),$make('bawahan',3),$make('bawahan',3),$make('bawahan',3)];
+check(Scoring::calculate($rows,$indicators)['score']===89.0,'Bobot 60/25/15 menghasilkan 89');
+$rows2=[$make('atasan',5),$make('rekan',4),$make('rekan',4),$make('rekan',4)];
+check(Scoring::calculate($rows2,$indicators)['score']===95.0,'Bobot 75/25 menghasilkan 95');
+$rows3=[$make('atasan',5),$make('bawahan',3),$make('bawahan',3),$make('bawahan',3)];
+check(Scoring::calculate($rows3,$indicators)['score']===94.0,'Bobot 85/15 menghasilkan 94');
+$expanded=[...$rows,$make('rekan',4),$make('rekan',4)];check(Scoring::calculate($expanded,$indicators)['score']===89.0,'Jumlah rekan tidak memperbesar bobot kelompok');
+$incomplete=$rows;$incomplete[1]['status']='draft';check(Scoring::calculate($incomplete,$indicators)['score']===null,'Draf tidak dihitung sebagai nol atau nilai final');
+$partial=$rows;unset($partial[1]['answers'][7]);check(!Scoring::calculate($partial,$indicators)['complete'],'Jawaban kurang dari tujuh memblokir hasil');
+$invalid=$rows;$invalid[1]['answers'][7]=6;check(!Scoring::calculate($invalid,$indicators)['complete'],'Nilai di luar skala memblokir hasil');
+check(Scoring::calculate([],$indicators)['score']===null,'Tanpa penugasan tidak menghasilkan angka');
+check(Scoring::weights(['rekan','bawahan'])===null,'Komposisi tanpa atasan ditolak');
+rejects(static fn()=>Scoring::validateComposition([$make('atasan',4),$make('rekan',4)]),'Ambang tiga rekan wajib');
+rejects(static fn()=>Scoring::validateComposition([...$rows,$make('atasan',4)]),'Atasan ganda ditolak');
+rejects(static fn()=>Scoring::validateAnswers([1=>0],range(1,7),false),'Nilai nol ditolak');
+rejects(static fn()=>Scoring::validateAnswers([1=>4.5],range(1,7),false),'Nilai pecahan ditolak');
+rejects(static fn()=>Scoring::validateAnswers([8=>4],range(1,7),false),'Indikator asing ditolak');
+rejects(static fn()=>Scoring::validateAnswers([1=>4],range(1,7),true),'Pengiriman parsial ditolak');
+check(Scoring::calculate(array_map(static fn($r)=>array_replace($r,['answers'=>array_fill_keys(range(1,7),1)]),$rows),$indicators)['score']===20.0,'Skor minimum konversi adalah 20');
+check(Scoring::calculate(array_map(static fn($r)=>array_replace($r,['answers'=>array_fill_keys(range(1,7),5)]),$rows),$indicators)['score']===100.0,'Skor maksimum konversi adalah 100');
+echo "Total: $passed pengujian lulus.\n";

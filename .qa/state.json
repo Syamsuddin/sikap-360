@@ -1,0 +1,249 @@
+{
+ "stack": "native",
+ "php": "8.4.23",
+ "db": "mysql 8.4.8 @127.0.0.1:3306 (root)",
+ "test_db": "sikap360_test",
+ "commit": "(no git)",
+ "stages": {
+  "0": {
+   "status": "done",
+   "at": "2026-09-13",
+   "note": "native, no git, no composer; test db sikap360_test seeded demo; spec 23 DISAHKAN + 1 keputusan"
+  },
+  "1": {
+   "status": "done",
+   "at": "2026-09-13",
+   "note": "php -l 0 error; scan.sh 0; phpstan L5 0 error (L9: 81 keluhan tipe mixed, bukan bug)"
+  },
+  "2": {
+   "status": "done",
+   "at": "2026-09-13",
+   "note": "tests/scoring.php 17 + tests/unit_scoring_edge.php 34 lulus"
+  },
+  "3": {
+   "status": "done",
+   "at": "2026-09-13",
+   "note": "schema.php bersih; tests/integration_db.php 26 lulus"
+  },
+  "4": {
+   "status": "done",
+   "at": "2026-09-13",
+   "note": "tests/api_invariants.php 40/41 → BUG-001 (M) origin cacat lolos"
+  },
+  "5": {
+   "status": "done",
+   "at": "2026-09-13",
+   "note": "tests/functional_flows.php 77 lulus; 0x500"
+  },
+  "6": {
+   "status": "done",
+   "at": "2026-09-13",
+   "note": "playwright chromium+hp-android 8/8 (6/8 bila BUG-002 terpicu)"
+  },
+  "7": {
+   "status": "done",
+   "at": "2026-09-13",
+   "note": "setelah fix: 202 PHP + 8 E2E hijau, phpstan L5 0"
+  },
+  "8": {
+   "status": "done",
+   "at": "2026-09-13",
+   "note": "OBS-01..09; staging tidak tersedia"
+  }
+ },
+ "risk": [
+  {
+   "file": "app/Api.php",
+   "fn": "submit",
+   "score": 8,
+   "why": "tulis,hitung(validasi),hak akses,belum ada test"
+  },
+  {
+   "file": "app/Api.php",
+   "fn": "saveDraft",
+   "score": 7,
+   "why": "tulis,hak akses(IDOR),version lock,belum ada test"
+  },
+  {
+   "file": "app/Api.php",
+   "fn": "login/auth/handle",
+   "score": 7,
+   "why": "auth,csrf,rate-limit,session"
+  },
+  {
+   "file": "app/Api.php",
+   "fn": "periodStatus",
+   "score": 7,
+   "why": "tulis,hitung(complete),admin,transisi"
+  },
+  {
+   "file": "app/Api.php",
+   "fn": "bootstrap",
+   "score": 6,
+   "why": "kebocoran data lintas user,hitung skor,visibilitas"
+  },
+  {
+   "file": "app/Api.php",
+   "fn": "saveEmployee",
+   "score": 6,
+   "why": "tulis,auth_version,validasi input,admin"
+  },
+  {
+   "file": "app/Api.php",
+   "fn": "changePassword",
+   "score": 5,
+   "why": "auth_version,session"
+  },
+  {
+   "file": "app/Api.php",
+   "fn": "createAssignment/deleteAssignment",
+   "score": 5,
+   "why": "tulis,admin,FK"
+  },
+  {
+   "file": "app/Scoring.php",
+   "fn": "calculate/validate*",
+   "score": 4,
+   "why": "hitung angka; sudah ada 17 test"
+  },
+  {
+   "file": "public/api.php",
+   "fn": "entry",
+   "score": 5,
+   "why": "origin,ukuran,content-type,error mapping"
+  },
+  {
+   "file": "scripts/install.php",
+   "fn": "install",
+   "score": 3,
+   "why": "tulis,CLI only"
+  }
+ ],
+ "findings": [
+  {
+   "id": "BUG-001",
+   "sev": "M",
+   "title": "Origin cacat (parse_url=false) melewati pemeriksaan Origin",
+   "file": "public/api.php:11",
+   "repro": "curl -b <cookie> -H 'Origin: http://127.0.0.1:8765.evil.test' -d '{}' api.php?action=bootstrap → 200 (Origin http://evil.test → 403)",
+   "root": "$origin=parse_url(...) mengembalikan false; kondisi `if($origin && …)` dilewati",
+   "status": "diperbaiki 2026-09-13",
+   "test": "tests/api_invariants.php baris 'Origin http://127.0.0.1:8765.evil.test → 403'"
+  },
+  {
+   "id": "BUG-002",
+   "sev": "M",
+   "title": "Periode draft masa depan jadi default bootstrap semua pengguna",
+   "file": "app/Api.php:60-61",
+   "repro": "INSERT periods draft 2027 → bootstrap {} → period draft, tasks 0",
+   "root": "ORDER BY start_date DESC tanpa memandang status",
+   "status": "diperbaiki 2026-09-13",
+   "test": "tests/api_invariants.php 'bootstrap default = periode open…'; e2e setelah test admin"
+  },
+  {
+   "id": "OBS-01",
+   "sev": "M [DUGAAN]",
+   "file": "app/Api.php:47-49",
+   "title": "kunci login per-IP di balik proxy mengunci semua pengguna",
+   "status": "diperbaiki 2026-09-13"
+  },
+  {
+   "id": "OBS-02",
+   "sev": "M",
+   "file": "Dockerfile",
+   "title": "/index.html tanpa CSP di Apache",
+   "status": "diperbaiki 2026-09-13"
+  },
+  {
+   "id": "OBS-03",
+   "sev": "L",
+   "file": "public/api.php",
+   "title": "gc_maxlifetime 1440 < session_ttl 1800",
+   "status": "diperbaiki 2026-09-13"
+  },
+  {
+   "id": "OBS-04",
+   "sev": "L",
+   "file": "app/Api.php:50",
+   "title": "login_attempts tidak dibersihkan",
+   "status": "diperbaiki 2026-09-13"
+  },
+  {
+   "id": "OBS-05",
+   "sev": "L",
+   "file": "app/Api.php:96,129",
+   "title": "NOW() vs date() zona waktu",
+   "status": "diperbaiki 2026-09-13"
+  },
+  {
+   "id": "OBS-06",
+   "sev": "L",
+   "file": "public/api.php:20",
+   "title": "CHECK HY000 → 503",
+   "status": "diperbaiki 2026-09-13"
+  },
+  {
+   "id": "OBS-07",
+   "sev": "L",
+   "file": ".dockerignore",
+   "title": ".qa/e2e ikut COPY",
+   "status": "diperbaiki 2026-09-13"
+  },
+  {
+   "id": "OBS-08",
+   "sev": "L",
+   "file": "public/assets/demo.js",
+   "title": "adapter demo ikut live",
+   "status": "diperbaiki 2026-09-13"
+  },
+  {
+   "id": "OBS-09",
+   "sev": "L",
+   "file": "app/Scoring.php",
+   "title": "kunci '01' → 409 bukan 422",
+   "status": "diperbaiki 2026-09-13"
+  }
+ ],
+ "decisions": [
+  {
+   "id": "D-01",
+   "text": "Tanpa PHPUnit/composer di proyek: test ditulis mengikuti pola tests/scoring.php (PHP polos + tests/bootstrap.php). Tidak menambah dependency."
+  },
+  {
+   "id": "D-02",
+   "text": "DB test sikap360_test dibuat di server lokal yang sama (root/Admin@123) dan di-seed dengan scripts/install.php --demo."
+  },
+  {
+   "id": "D-03",
+   "text": "Urutan periode default open→closed→published→draft adalah usulan agent (BUG-002)."
+  }
+ ],
+ "baseline": {
+  "failing": [
+   "api_invariants: Origin cacat → 403 (BUG-001)",
+   "api_invariants: bootstrap default periode open (BUG-002)"
+  ]
+ },
+ "notes": {
+  "Api.php": "143 baris padat; 1 entrypoint api.php?action=; auth via session+auth_version; csrf hash_equals; semua SQL prepared (?), tanpa SQL mentah interpolasi",
+  "Scoring.php": "pure; weights/validateComposition/validateAnswers/calculate",
+  "api.php": "POST only, JSON only, origin check vs APP_URL, 64KB cap, error map PDO 23000->409 else 503, Throwable->500"
+ },
+ "report": ".qa/reports/QA-2026-09-13.md",
+ "mode_fix": {
+  "at": "2026-09-13",
+  "applied": [
+   "BUG-001",
+   "BUG-002",
+   "OBS-01",
+   "OBS-02",
+   "OBS-03",
+   "OBS-04",
+   "OBS-05",
+   "OBS-06",
+   "OBS-07",
+   "OBS-08",
+   "OBS-09"
+  ]
+ }
+}
