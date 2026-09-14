@@ -1,5 +1,17 @@
 # SIKAP 360
 
+![Dashboard penilaian SIKAP 360](dist/assets/banner.png)
+
+[![Rilis](https://img.shields.io/github/v/tag/Syamsuddin/sikap-360?label=rilis&color=2563eb)](https://github.com/Syamsuddin/sikap-360/releases)
+[![Lisensi MIT](https://img.shields.io/github/license/Syamsuddin/sikap-360?color=16a34a)](LICENSE)
+[![PHP 8.3+](https://img.shields.io/badge/PHP-8.3%2B-777BB4?logo=php&logoColor=white)](https://www.php.net/)
+[![MySQL 8](https://img.shields.io/badge/MySQL-8.0%2B-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
+[![Tailwind CSS 4](https://img.shields.io/badge/Tailwind_CSS-4-06B6D4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com/)
+[![daisyUI 5](https://img.shields.io/badge/daisyUI-5-1AD1A5?logo=daisyui&logoColor=white)](https://daisyui.com/)
+[![Docker Compose](https://img.shields.io/badge/Docker-Compose-2496ED?logo=docker&logoColor=white)](compose.yaml)
+[![Pengujian](https://img.shields.io/badge/pengujian-PHP_%2B_Playwright-45ba4b?logo=playwright&logoColor=white)](tests/)
+[![Changelog](https://img.shields.io/badge/changelog-Keep_a_Changelog-E05735?logo=keepachangelog&logoColor=white)](CHANGELOG.md)
+
 Aplikasi penilaian perilaku ASN berbasis PHP 8.3, MySQL, Tailwind CSS 4, dan daisyUI 5. Tampilan dan alur mengikuti 12 gambar referensi. Data contoh memakai identitas fiktif, tanpa foto, email, atau NIP orang pada gambar.
 
 ## Isi aplikasi
