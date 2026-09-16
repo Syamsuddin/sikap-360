@@ -111,6 +111,17 @@ function periodModal(){const today=new Date(),next=Math.floor(today.getMonth()/3
  preview();document.getElementById('period-form').addEventListener('change',preview);}
 function assignmentModal(){const pool=data.employees.filter(e=>Number(e.active)&&inOpd(e)),options=data.opds.filter(o=>pool.some(e=>Number(e.opd_id)===Number(o.id))).map(o=>`<optgroup label="${esc(o.name)}">${pool.filter(e=>Number(e.opd_id)===Number(o.id)).map(e=>`<option value="${e.id}" data-opd="${e.opd_id}">${esc(e.name)}</option>`).join('')}</optgroup>`).join('');modal(`<h2 id="dialog-title">Tetapkan penilai</h2><p>Peran dipilih berdasarkan hubungan penilai terhadap pegawai yang dinilai.</p><form id="assignment-form"><label class="field"><span>Pegawai yang dinilai</span><select class="select" name="subject_id" required><option value="">Pilih pegawai</option>${options}</select></label><label class="field"><span>Pegawai penilai</span><select class="select" name="rater_id" required><option value="">Pilih penilai</option>${options}</select></label><label class="field"><span>Peran penilai terhadap pegawai</span><select class="select" name="rater_role"><option value="atasan">Atasan</option><option value="rekan">Rekan sejawat</option><option value="bawahan">Bawahan</option></select></label>${buttons('Tetapkan penilai')}</form>`);sameOpdOptions('assignment-form','subject_id','rater_id');}
 async function saveDraft(){if(!editing)return;const answer=await request('save_draft',{id:editing.id,version:editing.version,answers:editing.answers,feedback:document.getElementById('feedback').value});editing.version=answer.version;dirty=false;await refresh();return answer;}
+// Keluar selalu berakhir di halaman masuk. 401 berarti sesi server sudah berakhir; 403 berarti token CSRF tab ini usang (sesi diganti tab lain), maka ambil token baru lalu coba sekali lagi.
+async function logout(){
+ try{await request('logout');}
+ catch(e){
+  if(e.status===403){try{await refresh();await request('logout');}catch(e2){if(e2.status!==401)notify(e2.message,true);}}
+  else if(e.status!==401)notify(e.message,true);
+ }
+ data=null;editing=null;submitIds=[];dirty=false;periodId=0;opdFilter='all';resetTables();
+ sessionStorage.removeItem('sikap_period');sessionStorage.removeItem('sikap_opd');
+ location.hash='login';login();
+}
 async function perform(fn){if(busy)return;busy=true;const formControls=[...document.querySelectorAll('#evaluation-form input,#evaluation-form textarea')].map(node=>({node,disabled:node.disabled}));formControls.forEach(({node})=>node.disabled=true);document.querySelectorAll('button[data-action="confirm-submit"],button[data-action="confirm-period-status"],button[data-action="save-draft"],.modal-box button[type="submit"]').forEach(b=>b.disabled=true);try{await fn();}catch(e){notify(e.message,true);}finally{busy=false;formControls.forEach(({node,disabled})=>node.disabled=disabled);document.querySelectorAll('button[data-action="confirm-submit"],button[data-action="confirm-period-status"],button[data-action="save-draft"],.modal-box button[type="submit"]').forEach(b=>b.disabled=false);}}
 function csv(filename,headers,rows){const safe=v=>{let s=String(v??'');if(/^[=+@\-\t\r]/.test(s))s="'"+s;return'"'+s.replaceAll('"','""')+'"';};const blob=new Blob(['\ufeff'+[headers,...rows].map(row=>row.map(safe).join(',')).join('\r\n')],{type:'text/csv;charset=utf-8'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 let submitIds=[];
@@ -133,6 +144,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
   submitIds=[Number(editing.id)];confirmModal('Kirim penilaian ini?','Jawaban akan disimpan dan dikunci setelah dikirim. Periksa seluruh nilai sebelum melanjutkan.','confirm-submit','data-single="yes"');return;
  }
  if(action==='submit-ready'){submitIds=data.tasks.filter(t=>t.status==='draft'&&data.indicators.every(i=>t.answers[i.id])).map(t=>Number(t.id));confirmModal(`Kirim ${submitIds.length} penilaian?`,'Seluruh draf lengkap akan dikunci setelah dikirim. Draf yang belum lengkap tetap tersimpan.','confirm-submit');return;}
+ if(action==='logout'&&dirty&&!confirm('Ada perubahan yang belum disimpan. Keluar tanpa menyimpan?'))return;
  if(action==='print'){window.print();return;}
  if(action==='tree-toggle'){const li=el.closest('.tree-node');li.classList.toggle('collapsed');el.setAttribute('aria-expanded',String(!li.classList.contains('collapsed')));return;}
  if(action==='assignment-generate'){confirmModal('Buat penugasan dari struktur?',`Untuk periode <b>${esc(data.period.name)}</b>${isSuper()?(opdFilter==='all'?' pada <b>seluruh OPD</b>':` pada <b>${esc(opdName(opdFilter))}</b>`):''}: atasan langsung menjadi penilai atasan, pegawai seatasan menjadi rekan sejawat, dan bawahan langsung menjadi penilai bawahan. Kelompok rekan/bawahan berjumlah kurang dari 3 dilewati. Pasangan yang sudah ada tidak diduplikasi.`,'confirm-assignment-generate');return;}
@@ -143,7 +155,7 @@ document.addEventListener('click',e=>{const el=e.target.closest('[data-action]')
   if(action==='switch-role'){await request('demo_role');await refresh();render();}
   if(action==='demo-reset'){await request('demo_reset');periodId=1;closeModal();await refresh();location.hash='dashboard';render();notify('Data demo telah direset.');}
   if(action==='enter-demo'){await refresh();location.hash='dashboard';render();}
-  if(action==='logout'){await request('logout');dirty=false;location.hash='login';login();}
+  if(action==='logout')await logout();
   if(action==='save-draft'){await saveDraft();notify('Draf penilaian tersimpan.');}
   if(action==='confirm-submit'){
    if(el.dataset.single==='yes')await saveDraft();

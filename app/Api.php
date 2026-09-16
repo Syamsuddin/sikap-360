@@ -52,7 +52,7 @@ final class Api
   $this->auth();
   if($action!=='bootstrap'&&!hash_equals($_SESSION['csrf']??'',$_SERVER['HTTP_X_CSRF_TOKEN']??''))throw new ApiError('Token keamanan tidak valid. Muat ulang halaman.',403);
   if($action==='bootstrap')return $this->bootstrap((int)($body['period_id']??0));
-  if($action==='logout'){$_SESSION=[];session_destroy();return ['ok'=>true];}
+  if($action==='logout')return $this->logout();
   if($action==='password_change')return $this->changePassword($body);
   if($action==='save_draft')return $this->saveDraft($body);
   if($action==='submit')return $this->submit($body);
@@ -75,6 +75,14 @@ final class Api
   session_regenerate_id(true);$_SESSION=['user_id'=>(int)$u['id'],'auth_version'=>(int)$u['auth_version'],'last_seen'=>time(),'csrf'=>bin2hex(random_bytes(32))];
   $this->user=['user_id'=>(int)$u['id']];$this->audit('login','user',(int)$u['id']);
   $this->run('DELETE FROM login_attempts WHERE account_hash=?',[$account]);return ['ok'=>true];
+ }
+ // Keluar: catat audit, kosongkan dan hancurkan sesi, lalu hapus cookie sesi di browser agar ID lama tidak terkirim lagi.
+ private function logout(): array
+ {
+  $this->audit('logout','user',(int)$this->user['user_id']);
+  $_SESSION=[];
+  if(ini_get('session.use_cookies'))setcookie(session_name(),'',['expires'=>time()-86400,'path'=>'/','httponly'=>true,'secure'=>$this->config['secure_cookie'],'samesite'=>'Strict']);
+  session_destroy();return ['ok'=>true];
  }
  private function bootstrap(int $periodId): array
  {
