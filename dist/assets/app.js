@@ -27,7 +27,7 @@ const date=s=>new Date(s+'T12:00:00').toLocaleDateString('id-ID',{day:'numeric',
 const avatar=(e,large=false)=>`<div class="avatar-circle avatar-${Number(e.id)%5}" ${large?'style="width:48px;height:48px;font-size:14px"':''}>${esc(e.name.split(' ').slice(0,2).map(x=>x[0]).join(''))}</div>`;
 const badge=(status)=>`<span class="badge ${status==='submitted'||status==='published'?'pill-green':status==='draft'?'pill-blue':status==='open'?'pill-green':status==='closed'?'pill-gray':'pill-orange'}">${esc(statusLabels[status]??status)}</span>`;
 const roleBadge=r=>`<span class="badge ${r==='atasan'?'pill-blue':r==='bawahan'?'pill-teal':'pill-gray'}">${esc(targetLabels[r])}</span>`;
-const brand=()=>`<a href="#dashboard" class="brand" aria-label="SIKAP 360 Dashboard"><span class="brand-mark">${icon('scan-face')}</span><span><span class="brand-name">SIKAP<sup>360°</sup></span><div class="brand-sub">PENILAIAN PERILAKU ASN</div></span></a>`;
+const brand=()=>`<a href="#dashboard" class="brand" aria-label="SIKAP 360 Dashboard"><img class="brand-logo" src="assets/logo-hss.png" alt="Logo Kabupaten Hulu Sungai Selatan" width="129" height="176"><span><span class="brand-name">SIKAP<sup>360°</sup></span><div class="brand-sub">PENILAIAN PERILAKU ASN</div></span></a>`;
 function icons(){window.lucide?.createIcons();}
 // Tema awal dipasang assets/theme.js sebelum halaman digambar; di sini pilihan pengguna dibalik dan disimpan.
 const THEME_KEY='sikap_theme',isDark=()=>document.documentElement.dataset.theme==='dark',themeTitle=dark=>dark?'Ganti ke mode terang':'Ganti ke mode gelap';

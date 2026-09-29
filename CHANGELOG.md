@@ -14,6 +14,7 @@ Migrasi database: jalankan `database/upgrade-1.8-bobot.sql` sebelum memasang kod
 - Periode baru menyalin bobot periode terbaru. Pratinjau komposisi pada Struktur organisasi dan Dashboard memakai bobot periode terpilih.
 
 ### Diubah
+- Logo aplikasi diganti dengan logo Kabupaten Hulu Sungai Selatan pada sidebar, laman login (lebih besar di layar lebar, menyesuaikan di ponsel), dan ikon tab browser.
 - Penyimpanan dan pengiriman penilaian kini hanya ditentukan status periode. Selama periode dibuka, ASN dapat menyimpan dan mengirim penilaian meskipun tanggal hari ini berada di luar rentang periode (misalnya periode triwulan berikutnya yang dibuka lebih awal, atau pengisian yang berlanjut setelah triwulan berakhir). Administrator menghentikan pengisian dengan menutup periode.
 
 ### Diperbaiki
