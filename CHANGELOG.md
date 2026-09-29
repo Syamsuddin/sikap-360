@@ -4,6 +4,18 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [1.6.0] - 2026-09-30
+
+Tidak ada migrasi database.
+
+### Ditambahkan
+- Atasan lintas OPD. Administrator kabupaten dapat menetapkan pimpinan dari OPD lain sebagai atasan, misalnya Bupati bagi para kepala OPD, sehingga kepala OPD ikut dinilai: atasan Bupati, rekan sesama kepala OPD, dan bawahan langsungnya. Admin OPD tidak dapat menetapkan, mengganti, atau melepas atasan lintas OPD, tetapi tetap dapat menyunting data kepala OPD-nya.
+- Pejabat non-ASN yang tidak punya NIP (mis. Bupati) didaftarkan dengan kode huruf besar seperti `BUPATI-HSS` pada kolom NIP; kode ini juga dipakai untuk masuk.
+
+### Diubah
+- Buat penugasan membaca struktur dari seluruh OPD, sehingga penugasan per OPD pun menghitung atasan dan rekan lintas OPD. Yang dinilai tetap hanya pegawai OPD terpilih.
+- Laman Struktur organisasi: kepala OPD tetap menjadi puncak kelompok OPD-nya, Bupati menampilkan kepala OPD sebagai tautan, dan daftar atasan memuat kelompok "Pimpinan lintas OPD". Atasan lintas OPD tidak lagi hilang saat formulir pegawai atau atasan disimpan.
+
 ## [1.5.0] - 2026-09-30
 
 Tidak ada migrasi database.
