@@ -4,6 +4,16 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [1.7.0] - 2026-09-30
+
+Tidak ada migrasi database.
+
+### Ditambahkan
+- Kartu "Nilai saya" di Dashboard, di atas kartu Progres penilaian. Setelah periode dipublikasikan, kartu menampilkan nilai gabungan diri sendiri dari pegawai lain (skala 20–100), jumlah penilaian yang masuk, serta indikator tertinggi dan terendah, dengan tautan ke Hasil penilaian. Sebelum itu kartu hanya menampilkan jumlah penilaian yang sudah masuk dan kapan nilai akan tampil. Pegawai yang belum memiliki penilai melihat keterangan bukan peserta dan pilihan periode lain. Administrator kabupaten melihat pratinjau nilai begitu penilaian lengkap, sama seperti di Hasil penilaian. Identitas dan nilai individual penilai tetap tidak ditampilkan.
+
+### Diubah
+- Di layar tablet, kartu Nilai saya dan Progres penilaian tampil berdampingan dan kartu Sudut pandang yang lengkap melebar di bawahnya.
+
 ## [1.6.0] - 2026-09-30
 
 Tidak ada migrasi database.
