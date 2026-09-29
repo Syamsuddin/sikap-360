@@ -86,7 +86,7 @@ $fields = [
  'assignment_generate' => ['period_id' => 1, 'opd_id' => 1],
  'opd_save' => ['id' => 0, 'name' => 'OPD Fuzz', 'code' => 'FUZZ', 'active' => 1],
  'settings_save' => ['kabupaten_name' => 'Hulu Sungai Selatan'],
- 'weights_save' => ['weights' => ['atasan,bawahan,rekan' => ['atasan' => 60, 'rekan' => 25, 'bawahan' => 15], 'atasan,rekan' => ['atasan' => 75, 'rekan' => 25], 'atasan,bawahan' => ['atasan' => 85, 'bawahan' => 15]]],
+ 'weights_save' => ['period_id' => 1, 'weights' => ['atasan,bawahan,rekan' => ['atasan' => 60, 'rekan' => 25, 'bawahan' => 15], 'atasan,rekan' => ['atasan' => 75, 'rekan' => 25], 'atasan,bawahan' => ['atasan' => 85, 'bawahan' => 15]]],
  'period_create' => ['year' => 2027, 'quarter' => 1],
  'period_status' => ['period_id' => 1, 'status' => 'closed'],
  'assignment_create' => ['period_id' => 3, 'subject_id' => 1, 'rater_id' => 2, 'rater_role' => 'rekan'],

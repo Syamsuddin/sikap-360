@@ -6,11 +6,12 @@ Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang ter
 
 ## [Belum dirilis]
 
-Migrasi database: jalankan `database/upgrade-1.8-bobot.sql` (kolom `periods.weights`) sebelum memasang kode versi ini. Tanpa kolom itu, publikasi periode gagal.
+Migrasi database: jalankan `database/upgrade-1.8-bobot.sql` sebelum memasang kode versi ini. Migrasi menambah kolom `periods.weights` dan mengisi periode yang sudah ada dengan bobot bawaan. Tanpa kolom itu, pembuatan dan perubahan status periode gagal.
 
 ### Ditambahkan
-- Bobot komposisi penilai dapat diubah administrator kabupaten pada laman Metode, untuk Kondisi 1 (atasan/rekan/bawahan), Kondisi 2 (atasan/rekan), dan Kondisi 3 (atasan/bawahan). Tiap bobot bilangan bulat 1–99 dan jumlah tiap kondisi harus 100%. Bobot bawaan tetap 60/25/15, 75/25, dan 85/15. Perubahan bobot tercatat di log audit.
-- Bobot baru berlaku untuk periode yang belum dipublikasikan. Saat dipublikasikan, bobot yang berlaku disalin ke periode, sehingga hasil yang sudah diumumkan tidak ikut berubah. Periode yang dipublikasikan sebelum versi ini dihitung dengan bobot bawaan.
+- Bobot komposisi penilai melekat pada tiap periode dan dapat diubah administrator kabupaten pada laman Metode, untuk Kondisi 1 (atasan/rekan/bawahan), Kondisi 2 (atasan/rekan), dan Kondisi 3 (atasan/bawahan). Tiap bobot bilangan bulat 1–99 dan jumlah tiap kondisi harus 100%. Bobot bawaan tetap 60/25/15, 75/25, dan 85/15. Perubahan bobot tercatat di log audit per periode.
+- Laman Metode mengikuti periode terpilih lewat tombol periode di kepala laman. Bobot hanya dapat diubah selama periode berstatus draf dan hanya berlaku untuk periode itu. Sejak periode dibuka, bobot terkunci dan tampil dengan keterangan terkunci, sehingga aturan tidak berubah selama penilaian berjalan, setelah pratinjau nilai terlihat, maupun setelah hasil dipublikasikan.
+- Periode baru menyalin bobot periode terbaru. Pratinjau komposisi pada Struktur organisasi dan Dashboard memakai bobot periode terpilih.
 
 ### Diubah
 - Penyimpanan dan pengiriman penilaian kini hanya ditentukan status periode. Selama periode dibuka, ASN dapat menyimpan dan mengirim penilaian meskipun tanggal hari ini berada di luar rentang periode (misalnya periode triwulan berikutnya yang dibuka lebih awal, atau pengisian yang berlanjut setelah triwulan berakhir). Administrator menghentikan pengisian dengan menutup periode.

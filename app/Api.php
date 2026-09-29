@@ -41,9 +41,10 @@ final class Api
  private function settings(): array {$out=[];foreach($this->all('SELECT name,value FROM settings') as $r)$out[$r['name']]=$r['value'];return $out+['kabupaten_name'=>'Hulu Sungai Selatan'];}
  // Bobot tersimpan sebagai JSON; kosong atau rusak kembali ke bobot bawaan.
  private function weightTable(?string $json): array {if($json===null)return Scoring::DEFAULT_WEIGHTS;try{return Scoring::normalizeWeights(json_decode($json,true,8,JSON_THROW_ON_ERROR));}catch(JsonException|DomainException){return Scoring::DEFAULT_WEIGHTS;}}
- private function weights(): array {return $this->weightTable($this->settings()['scoring_weights']??null);}
- // Periode terpublikasi memakai salinan bobot saat publikasi agar hasil yang sudah diumumkan tidak ikut berubah; yang terpublikasi sebelum bobot dapat diubah (salinan kosong) memakai bobot bawaan.
- private function periodWeights(array $p): array {return $p['status']==='published'?$this->weightTable($p['weights']??null):$this->weights();}
+ // Bobot melekat pada tiap periode (periods.weights): dapat diubah selama draf dan terkunci sejak periode dibuka. NULL (periode sebelum v1.8) berarti bobot bawaan.
+ private function periodWeights(array $p): array {return $this->weightTable($p['weights']??null);}
+ // Periode baru menyalin bobot periode terbaru menurut urutan daftar periode; tanpa periode, bobot bawaan.
+ private function latestWeights(): array {return $this->weightTable($this->one('SELECT weights FROM periods ORDER BY start_date DESC,id DESC LIMIT 1')['weights']??null);}
  private function requiredText(array $body,string $key,int $max=160): string {$v=trim(is_string($body[$key]??null)?$body[$key]:'');if($v===''||mb_strlen($v)>$max)throw new ApiError('Kolom '.$key.' wajib diisi dan maksimal '.$max.' karakter.');return $v;}
  private function period(int $id,bool $lock=false): array {$p=$this->one('SELECT * FROM periods WHERE id=?'.($lock?' FOR UPDATE':''),[$id]);if(!$p)throw new ApiError('Periode tidak ditemukan.',404);return $p;}
  // Status periode yang menentukan: selama berstatus open, penilaian dapat disimpan dan dikirim di luar rentang tanggal; administrator menghentikannya dengan menutup periode.
@@ -105,7 +106,7 @@ final class Api
   $isAdmin=in_array($this->user['role'],['admin','admin_opd'],true);$scope=$this->scope();
   // Nama/jabatan/OPD atasan ikut dikirim agar atasan lintas OPD (mis. Bupati bagi kepala OPD) tetap tampil di lingkup admin OPD.
   $employees=$isAdmin?$this->all('SELECT e.*,u.role,o.name AS opd_name,o.code AS opd_code,s.name AS supervisor_name,s.position AS supervisor_position,s.opd_id AS supervisor_opd_id FROM employees e JOIN users u ON u.employee_id=e.id JOIN opd o ON o.id=e.opd_id LEFT JOIN employees s ON s.id=e.supervisor_id'.($scope!==null?' WHERE e.opd_id=?':'').' ORDER BY o.name,e.name',$scope!==null?[$scope]:[]):[];
-  return ['user'=>$user,'settings'=>$this->settings(),'opds'=>$this->all('SELECT o.*,(SELECT COUNT(*) FROM employees e WHERE e.opd_id=o.id AND e.active=1) AS employee_count FROM opd o ORDER BY o.name'),'periods'=>$periods,'period'=>$p,'weights'=>$this->weights(),'indicators'=>$ind,'tasks'=>$tasks,'result'=>$result,'csrf'=>$_SESSION['csrf'],'employees'=>$employees];
+  return ['user'=>$user,'settings'=>$this->settings(),'opds'=>$this->all('SELECT o.*,(SELECT COUNT(*) FROM employees e WHERE e.opd_id=o.id AND e.active=1) AS employee_count FROM opd o ORDER BY o.name'),'periods'=>$periods,'period'=>$p,'indicators'=>$ind,'tasks'=>$tasks,'result'=>$result,'csrf'=>$_SESSION['csrf'],'employees'=>$employees];
  }
  private function changePassword(array $b): array
  {
@@ -231,7 +232,7 @@ final class Api
   try{$p=Period::quarter((int)$b['year'],(int)$b['quarter']);}catch(DomainException $e){throw new ApiError($e->getMessage());}
   return $this->transaction(function()use($p){
    if($this->one('SELECT id FROM periods WHERE start_date=? AND end_date=? FOR UPDATE',[$p['start_date'],$p['end_date']]))throw new ApiError('Periode '.$p['name'].' sudah ada.',409);
-   $this->run('INSERT INTO periods(name,start_date,end_date) VALUES(?,?,?)',[$p['name'],$p['start_date'],$p['end_date']]);$id=(int)$this->db->lastInsertId();$this->audit('period_created','period',$id,['year'=>(int)substr($p['start_date'],0,4),'name'=>$p['name']]);return ['id'=>$id];
+   $this->run('INSERT INTO periods(name,start_date,end_date,weights) VALUES(?,?,?,?)',[$p['name'],$p['start_date'],$p['end_date'],json_encode($this->latestWeights(),JSON_THROW_ON_ERROR)]);$id=(int)$this->db->lastInsertId();$this->audit('period_created','period',$id,['year'=>(int)substr($p['start_date'],0,4),'name'=>$p['name']]);return ['id'=>$id];
   });
  }
  private function periodStatus(array $b): array
@@ -245,7 +246,8 @@ final class Api
     $subjects=[];foreach($rows as $row)$subjects[$row['subject_id']][]=$row;
     foreach($subjects as $subject=>$assignments){Scoring::validateComposition($assignments);if($status==='published'){if(!Scoring::calculate($this->scoringRows($id,(int)$subject),$this->indicators())['complete'])throw new ApiError('Seluruh penugasan wajib selesai sebelum publikasi.',409);}}
    }
-   $published=$status==='published';$this->run('UPDATE periods SET status=?,published_at=?,weights=? WHERE id=?',[$status,$published?date('Y-m-d H:i:s'):null,$published?json_encode($this->weights(),JSON_THROW_ON_ERROR):null,$id]);$this->audit('period_status_changed','period',$id,['from'=>$p['status'],'to'=>$status]);return ['ok'=>true];
+   // Bobot periode tidak disentuh perubahan status; periode lama tanpa bobot mendapat bobot bawaan secara tertulis saat dibuka.
+   $this->run('UPDATE periods SET status=?,published_at=?,weights=COALESCE(weights,?) WHERE id=?',[$status,$status==='published'?date('Y-m-d H:i:s'):null,json_encode($this->periodWeights($p),JSON_THROW_ON_ERROR),$id]);$this->audit('period_status_changed','period',$id,['from'=>$p['status'],'to'=>$status]);return ['ok'=>true];
   });
  }
  private function createAssignment(array $b): array
@@ -274,13 +276,14 @@ final class Api
   $name=$this->requiredText($b,'kabupaten_name',120);
   $this->run('INSERT INTO settings(name,value) VALUES(?,?) ON DUPLICATE KEY UPDATE value=VALUES(value)',['kabupaten_name',$name]);$this->audit('settings_saved','settings',null,['kabupaten_name'=>$name]);return ['ok'=>true];
  }
- // Bobot baru berlaku untuk periode yang belum dipublikasikan; periode terpublikasi tetap memakai salinan bobotnya.
+ // Bobot hanya berlaku untuk periode terpilih dan hanya dapat diubah selama draf; sejak dibuka, bobot terkunci agar aturan tidak berubah saat penilaian berjalan atau setelah nilai terlihat.
  private function saveWeights(array $b): array
  {
-  $weights=Scoring::normalizeWeights($b['weights']??null);
-  return $this->transaction(function()use($weights){
-   $old=$this->weights();$this->run('INSERT INTO settings(name,value) VALUES(?,?) ON DUPLICATE KEY UPDATE value=VALUES(value)',['scoring_weights',json_encode($weights,JSON_THROW_ON_ERROR)]);
-   $this->audit('weights_saved','settings',null,['from'=>$old,'to'=>$weights]);return ['weights'=>$weights];
+  $periodId=(int)($b['period_id']??0);$weights=Scoring::normalizeWeights($b['weights']??null);
+  return $this->transaction(function()use($periodId,$weights){
+   $p=$this->period($periodId,true);if($p['status']!=='draft')throw new ApiError('Bobot '.$p['name'].' terkunci sejak periode dibuka.',409);
+   $old=$this->periodWeights($p);$this->run('UPDATE periods SET weights=? WHERE id=?',[json_encode($weights,JSON_THROW_ON_ERROR),$periodId]);
+   $this->audit('weights_saved','period',$periodId,['from'=>$old,'to'=>$weights]);return ['weights'=>$weights];
   });
  }
 }

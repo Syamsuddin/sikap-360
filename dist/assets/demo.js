@@ -9,7 +9,7 @@ export const indicators = [
 ];
 export const roleLabels={atasan:'Atasan',rekan:'Rekan sejawat',bawahan:'Bawahan'};
 export const targetLabels={atasan:'Bawahan',rekan:'Rekan sejawat',bawahan:'Atasan'};
-// Bobot bawaan per komposisi (cermin Scoring::DEFAULT_WEIGHTS); db.settings.weights menyimpan bobot yang diubah admin, periode terpublikasi menyimpan salinannya.
+// Bobot bawaan per komposisi (cermin Scoring::DEFAULT_WEIGHTS); tiap periode menyimpan bobotnya sendiri di p.weights.
 export const DEFAULT_WEIGHTS={'atasan,bawahan,rekan':{atasan:60,rekan:25,bawahan:15},'atasan,rekan':{atasan:75,rekan:25},'atasan,bawahan':{atasan:85,bawahan:15}};
 export function weightsFor(roles,table=DEFAULT_WEIGHTS){const key=[...new Set(roles)].sort().join(',');return table[key]??null;}
 const OPDS=[{id:1,name:"Sekretariat Daerah",code:"SETDA",active:1},{id:2,name:"Badan Kepegawaian dan Pengembangan Sumber Daya Manusia",code:"BKPSDM",active:1},{id:3,name:"Dinas Pendidikan dan Kebudayaan",code:"DISDIKBUD",active:1},{id:4,name:"Dinas Komunikasi dan Informatika",code:"DISKOMINFO",active:1},{id:5,name:"Dinas Kesehatan",code:"DINKES",active:1}];
@@ -99,7 +99,8 @@ const KEY='sikap360_demo_v7';
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d?.employees?.length&&d?.periods?.length&&Array.isArray(d.assignments)&&Array.isArray(d.opds))return d;}catch{}return seed();}
 let db=load();
 function persist(){localStorage.setItem(KEY,JSON.stringify(db));}
-const currentWeights=()=>db.settings.weights??DEFAULT_WEIGHTS,periodWeights=p=>p?.status==='published'?p.weights??DEFAULT_WEIGHTS:currentWeights();
+// Bobot melekat pada tiap periode (cermin periods.weights): diubah selama draf, terkunci sejak dibuka; periode baru menyalin bobot periode terbaru.
+const periodWeights=p=>p?.weights??DEFAULT_WEIGHTS,latestWeights=()=>periodWeights([...db.periods].sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0]);
 function result(periodId,subjectId=1){
  const a=db.assignments.filter(x=>x.period_id===periodId&&x.subject_id===subjectId),received=a.filter(x=>x.status==='submitted').length;
  const period=db.periods.find(x=>x.id===periodId);
@@ -116,7 +117,7 @@ export async function demoRequest(action,body={}){
  const periodId=Number(body.period_id)||1;
  const opdOf=id=>db.opds.find(o=>o.id===Number(id)),withOpd=e=>({...e,opd_name:opdOf(e.opd_id)?.name??'',opd_code:opdOf(e.opd_id)?.code??''});
  if(action==='info')return{kabupaten_name:db.settings.kabupaten_name};
- if(action==='bootstrap')return{user:{...withOpd(db.employees[0]),role:db.admin?'admin':'asn'},settings:db.settings,opds:db.opds.map(o=>({...o,employee_count:db.employees.filter(e=>e.opd_id===o.id&&e.active).length})),periods:db.periods,period:(p=>({...p,weights:periodWeights(p)}))(db.periods.find(x=>x.id===periodId)??db.periods[0]),weights:currentWeights(),indicators,tasks:db.assignments.filter(x=>x.period_id===periodId&&x.rater_id===1).map(x=>({...x,employee:withOpd(db.employees.find(e=>e.id===x.subject_id))})),result:result(periodId),employees:db.admin?db.employees.map(withOpd):[],csrf:'demo'};
+ if(action==='bootstrap')return{user:{...withOpd(db.employees[0]),role:db.admin?'admin':'asn'},settings:db.settings,opds:db.opds.map(o=>({...o,employee_count:db.employees.filter(e=>e.opd_id===o.id&&e.active).length})),periods:db.periods,period:(p=>({...p,weights:periodWeights(p)}))(db.periods.find(x=>x.id===periodId)??db.periods[0]),indicators,tasks:db.assignments.filter(x=>x.period_id===periodId&&x.rater_id===1).map(x=>({...x,employee:withOpd(db.employees.find(e=>e.id===x.subject_id))})),result:result(periodId),employees:db.admin?db.employees.map(withOpd):[],csrf:'demo'};
  if(action==='assignment_list'){const emp=id=>db.employees.find(e=>e.id===Number(id)),opd=Number(body.opd_id)||null,base=db.assignments.filter(x=>x.period_id===periodId&&(!opd||emp(x.subject_id)?.opd_id===opd)),q=String(body.q??'').toLowerCase(),rows=base.filter(x=>(!['atasan','rekan','bawahan'].includes(body.role)||x.rater_role===body.role)&&(!['pending','draft','submitted'].includes(body.status)||x.status===body.status)&&(!q||(emp(x.subject_id)?.name+' '+emp(x.rater_id)?.name).toLowerCase().includes(q))),per=10,pages=Math.max(1,Math.ceil(rows.length/per)),page=Math.min(Math.max(1,Number(body.page)||1),pages);return{rows:rows.slice((page-1)*per,page*per).map(x=>({id:x.id,subject_id:x.subject_id,rater_id:x.rater_id,rater_role:x.rater_role,status:x.status,opd_id:emp(x.subject_id)?.opd_id,opd_code:opdOf(emp(x.subject_id)?.opd_id)?.code??'',subject_name:emp(x.subject_id)?.name??'',rater_name:emp(x.rater_id)?.name??''})),total:rows.length,page,pages,per,stats:{total:base.length,submitted:base.filter(x=>x.status==='submitted').length}};}
  if(action==='demo_role'){db.admin=!db.admin;persist();return{};}
  if(action==='demo_reset'){db=seed();persist();return{};}
@@ -171,13 +172,13 @@ export async function demoRequest(action,body={}){
   if(body.id){const o=db.opds.find(x=>x.id===Number(body.id));if(!o)throw Error('OPD tidak ditemukan.');if(!active&&db.employees.some(e=>e.opd_id===o.id&&e.active))throw Error('OPD masih memiliki pegawai aktif.');Object.assign(o,{name,code,active});}else db.opds.push({id:Math.max(...db.opds.map(o=>o.id))+1,name,code,active});
   persist();return{};
  }
- if(action==='weights_save'){const out={};for(const [key,roles] of Object.entries(DEFAULT_WEIGHTS)){out[key]={};for(const role of Object.keys(roles)){const w=body.weights?.[key]?.[role];if(!Number.isInteger(w)||w<1||w>99)throw Error('Bobot harus bilangan bulat 1 sampai 99.');out[key][role]=w;}if(Object.values(out[key]).reduce((s,x)=>s+x,0)!==100)throw Error('Jumlah bobot tiap kondisi harus 100%.');}db.settings.weights=out;persist();return{weights:out};}
+ if(action==='weights_save'){const p=db.periods.find(x=>x.id===periodId);if(!p)throw Error('Periode tidak ditemukan.');const out={};for(const [key,roles] of Object.entries(DEFAULT_WEIGHTS)){out[key]={};for(const role of Object.keys(roles)){const w=body.weights?.[key]?.[role];if(!Number.isInteger(w)||w<1||w>99)throw Error('Bobot harus bilangan bulat 1 sampai 99.');out[key][role]=w;}if(Object.values(out[key]).reduce((s,x)=>s+x,0)!==100)throw Error('Jumlah bobot tiap kondisi harus 100%.');}if(p.status!=='draft')throw Error(`Bobot ${p.name} terkunci sejak periode dibuka.`);p.weights=out;persist();return{weights:out};}
  if(action==='settings_save'){const name=(body.kabupaten_name??'').trim();if(!name||name.length>120)throw Error('Nama kabupaten wajib diisi.');db.settings.kabupaten_name=name;persist();return{};}
  if(action==='period_create'){
   const year=Number(body.year),quarter=Number(body.quarter);if(!(year>=2000&&year<=2100)||!(quarter>=1&&quarter<=4))throw Error('Tahun atau triwulan tidak valid.');
   const m=(quarter-1)*3,start=`${year}-${String(m+1).padStart(2,'0')}-01`,end=`${year}-${String(m+3).padStart(2,'0')}-${new Date(year,m+3,0).getDate()}`,name=`Triwulan ${['I','II','III','IV'][quarter-1]} ${year}`;
   if(db.periods.some(p=>p.start_date===start))throw Error(`Periode ${name} sudah ada.`);
-  db.periods.push({id:Math.max(...db.periods.map(x=>x.id))+1,name,start_date:start,end_date:end,status:'draft'});persist();return{};
+  db.periods.push({id:Math.max(...db.periods.map(x=>x.id))+1,name,start_date:start,end_date:end,status:'draft',weights:latestWeights()});persist();return{};
  }
  if(action==='period_status'){
   const p=db.periods.find(x=>x.id===periodId);const next={draft:['open'],open:['closed'],closed:['open','published'],published:[]};
@@ -188,7 +189,7 @@ export async function demoRequest(action,body={}){
    for(const subject of new Set(rows.map(x=>x.subject_id))){const a=rows.filter(x=>x.subject_id===subject);if(!weightsFor(a.map(x=>x.rater_role))||a.filter(x=>x.rater_role==='atasan').length!==1)throw Error('Komposisi memerlukan tepat satu atasan dan kelompok penilai pendamping.');for(const role of ['rekan','bawahan']){const count=a.filter(x=>x.rater_role===role).length;if(count>0&&count<3)throw Error('Minimal 3 penilai rekan/bawahan per kelompok.');}}
   }
   if(body.status==='published'&&rows.some(x=>x.status!=='submitted'))throw Error('Seluruh penilaian wajib selesai sebelum publikasi.');
-  p.status=body.status;if(p.status==='published')p.weights=currentWeights();persist();return{};
+  p.status=body.status;p.weights??=DEFAULT_WEIGHTS;persist();return{};
  }
  if(action==='assignment_create'){
   const p=db.periods.find(x=>x.id===periodId);if(p.status!=='draft')throw Error('Penilai hanya diatur pada periode draf.');

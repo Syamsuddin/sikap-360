@@ -5,8 +5,8 @@ CREATE TABLE IF NOT EXISTS settings (
  value VARCHAR(255) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 INSERT IGNORE INTO settings(name,value) VALUES('kabupaten_name','Hulu Sungai Selatan');
--- Bobot komposisi penilai tersimpan di settings.scoring_weights (JSON) setelah diubah administrator kabupaten; tanpa baris itu berlaku bobot bawaan 60/25/15, 75/25, 85/15.
--- periods.weights menyimpan salinan bobot saat publikasi agar hasil yang sudah diumumkan tidak berubah; NULL pada periode terpublikasi berarti bobot bawaan.
+-- Bobot komposisi penilai melekat pada tiap periode (periods.weights, JSON): dapat diubah administrator kabupaten selama periode draf dan terkunci sejak periode dibuka.
+-- Periode baru menyalin bobot periode terbaru; NULL berarti bobot bawaan 60/25/15, 75/25, 85/15.
 CREATE TABLE IF NOT EXISTS opd (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
  name VARCHAR(160) NOT NULL UNIQUE,
