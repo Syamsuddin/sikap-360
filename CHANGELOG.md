@@ -4,6 +4,11 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [1.4.2] - 2026-09-29
+
+### Diperbaiki
+- Browser tidak lagi memakai `app.js` dan `app.css` lama hingga 7 hari setelah rilis. `index.php` menambahkan penanda versi (waktu ubah berkas) pada URL aset dan mengirim halaman dengan `Cache-Control: no-cache`. Sebelumnya klien yang masih memegang `app.js` pra-1.3.0 gagal membuka Periode & penilai karena `bootstrap` tidak lagi memuat `assignments`.
+
 ## [1.4.1] - 2026-09-29
 
 ### Diubah
