@@ -1,6 +1,6 @@
 # Akun Login Seeder Demo SIKAP 360
 
-Sumber: `scripts/seed-demo.php` (dibuat oleh `php scripts/install.php --demo`). Username = alamat email. Kata sandi semua akun `SikapDemo2026!`. Jangan gunakan akun ini di produksi.
+Sumber: `scripts/seed-demo.php` (dibuat oleh `php scripts/install.php --demo`). Username = alamat email atau NIP (`DEMO-0001` untuk pegawai1, dan seterusnya). Kata sandi semua akun `SikapDemo2026!`. Jangan gunakan akun ini di produksi.
 
 Kabupaten Hulu Sungai Selatan, lima OPD: DISDIKBUD (id 1–14), DINKES (15–19, 50), BKPSDM (20–34), DISKOMINFO (35–49), SETDA (51–60). Struktur organisasi tiap OPD terisi (kepala → sekretaris/kabid/kabag → kasubbag/fungsional → pelaksana); pasangan penilai OPD selain DISDIKBUD diturunkan dari struktur.
 

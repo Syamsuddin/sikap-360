@@ -9,9 +9,9 @@ function watch(page: Page, errs: string[]) {
   page.on('console', m => { if (m.type() === 'error' && !/status of 401/.test(m.text())) errs.push(`console ${page.url()}: ${m.text()}`); });
   page.on('response', r => { if (r.status() >= 500) errs.push(`${r.status()} ${r.url()}`); });
 }
-async function login(page: Page, email: string) {
+async function login(page: Page, username: string) {
   await page.goto('/#login');
-  await page.locator('#login-form input[type=email]').fill(email);
+  await page.locator('#login-form input[name=username]').fill(username);
   await page.locator('#login-form input[type=password]').fill(PASS);
   await Promise.all([page.waitForResponse(r => r.url().includes('action=bootstrap') && r.status() === 200), page.locator('#login-form button[type=submit]').click()]);
   await expect(page.locator('#main-content')).toBeVisible();

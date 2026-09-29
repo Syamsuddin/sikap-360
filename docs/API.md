@@ -4,7 +4,7 @@ Endpoint relatif: `api.php?action=NAMA_AKSI`. Semua permintaan POST, Content-Typ
 
 | Aksi | Peran | Isi JSON |
 | --- | --- | --- |
-| login | Publik | email, password |
+| login | Publik | username (NIP atau email; berisi "@" dicari sebagai email, selain itu sebagai NIP dengan spasi diabaikan; kunci lama email tetap diterima), password |
 | info | Publik | objek kosong; mengembalikan kabupaten_name |
 | bootstrap | ASN/admin | period_id opsional |
 | logout | ASN/admin | objek kosong |

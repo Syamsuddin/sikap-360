@@ -24,9 +24,9 @@ final class QaHttp
         $payload = is_string($body) ? $body : json_encode($body, JSON_THROW_ON_ERROR);
         return $this->raw($opt['method'] ?? 'POST', $this->base . '/api.php?action=' . rawurlencode($action), $payload, array_merge($h, $this->extraHeaders));
     }
-    public function login(string $email, string $password = 'SikapDemo2026!'): int
+    public function login(string $username, string $password = 'SikapDemo2026!', string $field = 'username'): int
     {
-        [$code] = $this->call('login', ['email' => $email, 'password' => $password], ['nocsrf' => true]);
+        [$code] = $this->call('login', [$field => $username, 'password' => $password], ['nocsrf' => true]);
         if ($code === 200) { [, $b] = $this->call('bootstrap', [], ['nocsrf' => true]); $this->csrf = (string) ($b['csrf'] ?? ''); }
         return $code;
     }

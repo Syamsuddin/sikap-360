@@ -36,6 +36,11 @@ check(!$bad, 'Admin OPD: aksi kabupaten (periode, OPD, pengaturan) → 403 ' . i
 [$c] = $admin->call('tidak_ada', []); check($c === 404, "admin aksi asing → 404 ($c)");
 // email login case-insensitive & trim
 $tmp = new QaHttp('tmp'); check($tmp->login('  PEGAWAI3@Example.TEST ') === 200, 'login email huruf besar + spasi diterima (strtolower+trim)');
+$nip = new QaHttp('nip3'); check($nip->login('DEMO-0003') === 200 && $nip->bootstrap()['user']['id'] === 3, 'login dengan NIP diterima dan masuk sebagai pegawai yang benar');
+$nipSp = new QaHttp('nip3sp'); check($nipSp->login(' DEMO- 0003 ') === 200, 'login NIP dengan spasi diterima (spasi diabaikan)');
+$legacy = new QaHttp('legacy'); check($legacy->login('pegawai3@example.test', 'SikapDemo2026!', 'email') === 200, 'kunci lama "email" tetap diterima');
+check((new QaHttp('nipbad'))->login('DEMO-0003', 'salah-sandi-123') === 401, 'login NIP dengan kata sandi salah → 401');
+check((new QaHttp('nipnone'))->login('199999999999999999') === 401, 'NIP tidak terdaftar → 401');
 
 // 4. CSRF (R-09)
 $bad = []; foreach (array_diff($ALL, ['bootstrap', 'tidak_ada']) as $a) { [$c1] = $asn->call($a, ['id' => 1], ['nocsrf' => true]); [$c2] = $asn->call($a, ['id' => 1], ['csrf' => 'salah']); if ($c1 !== 403 || $c2 !== 403) $bad[] = "$a=$c1/$c2"; }

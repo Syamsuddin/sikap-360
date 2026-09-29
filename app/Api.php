@@ -62,16 +62,18 @@ final class Api
  }
  private function login(array $body): array
  {
-  $email=strtolower(trim(is_string($body['email']??null)?$body['email']:''));$password=is_string($body['password']??null)?$body['password']:'';
-  if(strlen($email)>160||strlen($password)>1024)throw new ApiError('Email atau kata sandi salah.',401);
-  $account=hash('sha256',$email);$ip=hash('sha256',$this->clientIp());
+  // Username berupa NIP atau email: berisi "@" dicari sebagai email, selain itu sebagai NIP (spasi diabaikan). Kunci "email" tetap diterima untuk klien lama.
+  $raw=$body['username']??$body['email']??null;$username=trim(is_string($raw)?$raw:'');$password=is_string($body['password']??null)?$body['password']:'';
+  $byEmail=str_contains($username,'@');$username=$byEmail?strtolower($username):preg_replace('/\s+/','',$username);
+  if($username===''||strlen($username)>160||strlen($password)>1024)throw new ApiError('NIP/email atau kata sandi salah.',401);
+  $account=hash('sha256',$username);$ip=hash('sha256',$this->clientIp());
   $this->run('DELETE FROM login_attempts WHERE attempted_at<DATE_SUB(NOW(),INTERVAL 1 DAY)');
   $attempts=$this->one('SELECT SUM(account_hash=?) AS by_account,SUM(ip_hash=?) AS by_ip FROM login_attempts WHERE attempted_at>DATE_SUB(NOW(),INTERVAL 15 MINUTE)',[$account,$ip]);
   if((int)$attempts['by_account']>=$this->config['login_limit_account']||(int)$attempts['by_ip']>=$this->config['login_limit_ip'])throw new ApiError('Terlalu banyak percobaan. Coba lagi dalam 15 menit.',429);
   $this->run('INSERT INTO login_attempts(account_hash,ip_hash) VALUES(?,?)',[$account,$ip]);
-  $u=$this->one('SELECT u.* FROM users u JOIN employees e ON e.id=u.employee_id WHERE e.email=? AND e.active=1',[$email]);
+  $u=$this->one('SELECT u.* FROM users u JOIN employees e ON e.id=u.employee_id WHERE e.'.($byEmail?'email':'nip').'=? AND e.active=1',[$username]);
   $dummy='$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2uheWG/igi.';
-  if(!password_verify($password,$u['password_hash']??$dummy)||!$u)throw new ApiError('Email atau kata sandi salah.',401);
+  if(!password_verify($password,$u['password_hash']??$dummy)||!$u)throw new ApiError('NIP/email atau kata sandi salah.',401);
   session_regenerate_id(true);$_SESSION=['user_id'=>(int)$u['id'],'auth_version'=>(int)$u['auth_version'],'last_seen'=>time(),'csrf'=>bin2hex(random_bytes(32))];
   $this->user=['user_id'=>(int)$u['id']];$this->audit('login','user',(int)$u['id']);
   $this->run('DELETE FROM login_attempts WHERE account_hash=?',[$account]);return ['ok'=>true];

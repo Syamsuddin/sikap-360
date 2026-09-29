@@ -50,7 +50,7 @@ docker compose exec app php scripts/install.php --demo
 
 Buka http://localhost:8080.
 
-Akun demo:
+Akun demo (masuk dengan email, atau NIP `DEMO-0001` dan seterusnya):
 
 | Akses | Email | Kata sandi |
 | --- | --- | --- |
@@ -106,7 +106,7 @@ python3 scripts/import-siasn.py ekspor-siasn.xlsx --apply --admin email.admin@in
 - Atasan langsung adalah pejabat struktural unit pegawai, atau unit induknya bila jabatan itu kosong.
 - Guru, pegawai sekolah (SD/SMP/TK), dan Puskesmas tidak diimpor kecuali dengan `--semua`, karena kepala sekolah dan kepala Puskesmas tidak tercatat di SIASN.
 - Pegawai tanpa UNOR masuk OPD "Unit Organisasi Belum Terpetakan". Email yang kosong, rusak, atau dipakai bersama diganti `NIP@sikap360.local`.
-- Pegawai masuk dengan email SIASN-nya; kata sandi awal adalah NIP (18 digit) dan dapat diganti pada menu Profil. Impor ditolak bila sudah ada penugasan penilaian, kecuali dengan `--timpa-penilaian`.
+- Pegawai masuk dengan NIP (18 digit) atau email SIASN-nya; kata sandi awal adalah NIP dan dapat diganti pada menu Profil. Impor ditolak bila sudah ada penugasan penilaian, kecuali dengan `--timpa-penilaian`.
 - Hanya kolom yang dipakai aplikasi yang diimpor; NIK, alamat, HP, dan NPWP diabaikan. Jangan simpan berkas ekspor SIASN di repositori.
 
 ## Urutan pengoperasian
