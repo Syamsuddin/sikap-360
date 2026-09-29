@@ -4,7 +4,7 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
-## [Belum dirilis]
+## [1.5.0] - 2026-09-30
 
 Tidak ada migrasi database.
 
