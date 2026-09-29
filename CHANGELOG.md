@@ -4,6 +4,13 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [Belum dirilis]
+
+Tidak ada migrasi database.
+
+### Ditambahkan
+- Mode gelap. Tampilan awal mengikuti pengaturan terang/gelap perangkat; tombol bulan/matahari di bilah atas dan halaman masuk (di ponsel: menu profil) mengganti mode, dan pilihan disimpan di browser. Tema terang tidak berubah. Cetak hasil selalu memakai tema terang.
+
 ## [1.4.2] - 2026-09-29
 
 ### Diperbaiki

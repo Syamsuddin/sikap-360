@@ -170,6 +170,7 @@ Skor adalah hasil kuantitatif rubrik. Aplikasi tidak menetapkan predikat resmi k
 | public/assets/app.js | Antarmuka bersama PHP dan pratinjau |
 | resources/demo.js | Adapter pratinjau lokal, disalin ke dist/ saat build dan hanya dipanggil dalam mode demo |
 | public/assets/app.css | CSS Tailwind/daisyUI hasil kompilasi |
+| public/assets/theme.js | Pemasang tema terang/gelap sebelum halaman digambar |
 | app/Api.php | Autentikasi, akses, dan operasi transaksi |
 | app/Scoring.php | Validasi komposisi, jawaban, dan perhitungan |
 | app/Database.php | Koneksi PDO MySQL |
@@ -193,6 +194,8 @@ npm run build
 ```
 
 Perintah membangun CSS lokal dan menyalin antarmuka ke `dist/`. Produksi tidak membutuhkan CDN. Sumber dan versi pasti dependency tercatat dalam `package-lock.json`. Dependensi tampilan memakai [instalasi resmi daisyUI](https://daisyui.com/docs/install/) dan [Tailwind CLI](https://tailwindcss.com/docs/installation/tailwind-cli). Ikon berasal dari Lucide. Lisensi dependensi disertakan pada `THIRD_PARTY_NOTICES.md`.
+
+Warna di `resources/app.css` ditulis sebagai `var(--ui-token, #warna-terang)`. Token `--ui-*` hanya didefinisikan pada blok tema gelap (`:root[data-theme=dark]`), sehingga tema terang memakai nilai cadangan. Warna baru mengikuti pola yang sama: pakai token yang sudah ada, atau tambahkan token beserta nilai gelapnya pada blok tersebut.
 
 ## Pengujian perhitungan
 
