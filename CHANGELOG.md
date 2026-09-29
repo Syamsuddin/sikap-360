@@ -4,6 +4,11 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [1.4.1] - 2026-09-29
+
+### Diubah
+- Label kolom masuk pada formulir login menjadi "Email / NIP".
+
 ## [1.4.0] - 2026-09-29
 
 Tidak ada migrasi database.
