@@ -96,7 +96,8 @@ final class Api
   if(!$result['visible']){$result['score']=null;$result['dimensions']=[];}
   $user=$this->user;unset($user['auth_version'],$user['user_id']);
   $isAdmin=in_array($this->user['role'],['admin','admin_opd'],true);$scope=$this->scope();
-  $employees=$isAdmin?$this->all('SELECT e.*,u.role,o.name AS opd_name,o.code AS opd_code FROM employees e JOIN users u ON u.employee_id=e.id JOIN opd o ON o.id=e.opd_id'.($scope!==null?' WHERE e.opd_id=?':'').' ORDER BY o.name,e.name',$scope!==null?[$scope]:[]):[];
+  // Nama/jabatan/OPD atasan ikut dikirim agar atasan lintas OPD (mis. Bupati bagi kepala OPD) tetap tampil di lingkup admin OPD.
+  $employees=$isAdmin?$this->all('SELECT e.*,u.role,o.name AS opd_name,o.code AS opd_code,s.name AS supervisor_name,s.position AS supervisor_position,s.opd_id AS supervisor_opd_id FROM employees e JOIN users u ON u.employee_id=e.id JOIN opd o ON o.id=e.opd_id LEFT JOIN employees s ON s.id=e.supervisor_id'.($scope!==null?' WHERE e.opd_id=?':'').' ORDER BY o.name,e.name',$scope!==null?[$scope]:[]):[];
   return ['user'=>$user,'settings'=>$this->settings(),'opds'=>$this->all('SELECT o.*,(SELECT COUNT(*) FROM employees e WHERE e.opd_id=o.id AND e.active=1) AS employee_count FROM opd o ORDER BY o.name'),'periods'=>$periods,'period'=>$p,'indicators'=>$ind,'tasks'=>$tasks,'result'=>$result,'csrf'=>$_SESSION['csrf'],'employees'=>$employees];
  }
  private function changePassword(array $b): array
@@ -133,7 +134,8 @@ final class Api
  private function saveEmployee(array $b): array
  {
   $id=(int)($b['id']??0);$fields=[];foreach(['name','nip','position','unit','grade','email'] as $key)$fields[$key]=$this->requiredText($b,$key,$key==='nip'?18:($key==='grade'?80:160));
-  if(!preg_match('/^\d{18}$/D',$fields['nip'])&&!preg_match('/^DEMO-\d{4}$/D',$fields['nip']))throw new ApiError('NIP harus 18 digit.');
+  // NIP 18 digit; pejabat non-ASN (mis. Bupati) memakai kode huruf besar seperti BUPATI-HSS yang juga dipakai untuk masuk. Kode DEMO-0001 milik data demo.
+  if(!preg_match('/^\d{18}$/D',$fields['nip'])&&!preg_match('/^[A-Z][A-Z0-9-]{3,17}$/D',$fields['nip']))throw new ApiError('NIP harus 18 digit, atau kode huruf besar untuk pejabat non-ASN (mis. BUPATI-HSS).');
   $fields['email']=strtolower($fields['email']);if(!filter_var($fields['email'],FILTER_VALIDATE_EMAIL))throw new ApiError('Email tidak valid.');
   // Kata sandi awal pegawai baru = NIP bila dikosongkan; saat edit, kosong berarti tidak diganti.
   $password=is_string($b['password']??null)?$b['password']:'';if(!$id&&$password==='')$password=$fields['nip'];if((!$id||$password!=='')&&(strlen($password)<12||strlen($password)>128))throw new ApiError('Kata sandi harus 12 sampai 128 karakter.');
@@ -153,11 +155,14 @@ final class Api
   });
  }
  // Atasan langsung: harus pegawai aktif lain dan tidak boleh membentuk siklus (ditelusuri ke atas sampai akar).
+ // Atasan lintas OPD (mis. Bupati bagi kepala OPD) hanya dapat ditetapkan atau dilepas admin kabupaten; admin OPD hanya dapat mempertahankannya.
  private function validateSupervisor(int $employeeId,?int $supervisorId,int $opdId): void
  {
+  $current=$employeeId?$this->one('SELECT s.id,s.opd_id FROM employees e JOIN employees s ON s.id=e.supervisor_id WHERE e.id=?',[$employeeId]):null;$keep=$current&&(int)$current['id']===$supervisorId;
+  if($this->scope()!==null&&$current&&!$keep&&(int)$current['opd_id']!==$opdId)throw new ApiError('Atasan dari OPD lain hanya dapat diubah administrator kabupaten.');
   if($supervisorId===null)return;if($supervisorId===$employeeId)throw new ApiError('Pegawai tidak dapat menjadi atasan dirinya sendiri.');
   $sup=$this->one('SELECT opd_id FROM employees WHERE id=? AND active=1',[$supervisorId]);if(!$sup)throw new ApiError('Atasan tidak aktif atau tidak ditemukan.',404);
-  if((int)$sup['opd_id']!==$opdId)throw new ApiError('Atasan harus berasal dari OPD yang sama.');
+  if((int)$sup['opd_id']!==$opdId&&$this->scope()!==null&&!$keep)throw new ApiError('Atasan dari OPD lain hanya dapat ditetapkan administrator kabupaten.');
   for($cur=$supervisorId,$depth=0;$cur!==null&&$depth<200;$depth++){if($cur===$employeeId)throw new ApiError('Struktur melingkar: atasan yang dipilih berada di bawah pegawai ini.',409);$row=$this->one('SELECT supervisor_id FROM employees WHERE id=?',[$cur]);$cur=isset($row['supervisor_id'])?(int)$row['supervisor_id']:null;}
  }
  private function setSupervisor(array $b): array
@@ -170,7 +175,7 @@ final class Api
   });
  }
  // Turunkan penugasan periode draf dari struktur: atasan langsung → atasan, bawahan langsung → bawahan (min. 3), rekan (min. 3):
- // pejabat (punya bawahan) → sesama pejabat dengan atasan yang sama; staf → staf lain satu unit (UNOR) dalam OPD yang sama.
+ // pejabat (punya bawahan) → sesama pejabat dengan atasan yang sama, juga lintas OPD (kepala OPD di bawah Bupati); staf → staf lain satu unit (UNOR) dalam OPD yang sama.
  // Pegawai tanpa atasan dilewati; pasangan yang sudah ada tidak diduplikasi. Kelompok rekan/bawahan berjumlah 1–2 dilewati agar komposisi tetap sah.
  private function listAssignments(array $b): array
  {
@@ -193,10 +198,12 @@ final class Api
   return $this->transaction(function()use($periodId,$opdId){
    if($this->period($periodId,true)['status']!=='draft')throw new ApiError('Distribusi penilai dikunci setelah periode dibuka.',409);
    if($opdId!==null&&!$this->one('SELECT id FROM opd WHERE id=?',[$opdId]))throw new ApiError('OPD tidak ditemukan.',404);
-   $employees=$this->all('SELECT e.id,CONCAT(o.code," · ",e.name) AS name,e.supervisor_id,e.opd_id,e.unit FROM employees e JOIN opd o ON o.id=e.opd_id WHERE e.active=1'.($opdId!==null?' AND e.opd_id=?':'').' ORDER BY o.name,e.name',$opdId!==null?[$opdId]:[]);$children=[];$units=[];$unitKey=static fn(array $e)=>$e['opd_id'].'|'.mb_strtolower(trim($e['unit']));foreach($employees as $e)if($e['supervisor_id']!==null)$children[(int)$e['supervisor_id']][]=(int)$e['id'];foreach($employees as $e)if(!isset($children[(int)$e['id']]))$units[$unitKey($e)][]=(int)$e['id'];
+   // Struktur dibaca dari seluruh OPD agar atasan dan rekan lintas OPD (Bupati dan sesama kepala OPD) ikut terhitung; yang dinilai tetap hanya pegawai OPD terpilih.
+   $employees=$this->all('SELECT e.id,CONCAT(o.code," · ",e.name) AS name,e.supervisor_id,e.opd_id,e.unit FROM employees e JOIN opd o ON o.id=e.opd_id WHERE e.active=1 ORDER BY o.name,e.name');$children=[];$units=[];$unitKey=static fn(array $e)=>$e['opd_id'].'|'.mb_strtolower(trim($e['unit']));foreach($employees as $e)if($e['supervisor_id']!==null)$children[(int)$e['supervisor_id']][]=(int)$e['id'];foreach($employees as $e)if(!isset($children[(int)$e['id']]))$units[$unitKey($e)][]=(int)$e['id'];
    $existing=[];foreach($this->all('SELECT subject_id,rater_id FROM assignments WHERE period_id=?',[$periodId]) as $a)$existing[$a['subject_id'].'-'.$a['rater_id']]=true;
    $created=0;$skipped=0;$warnings=[];
    foreach($employees as $e){
+    if($opdId!==null&&(int)$e['opd_id']!==$opdId)continue;
     $subject=(int)$e['id'];if($e['supervisor_id']===null){$warnings[]=$e['name'].': tanpa atasan, tidak dinilai.';continue;}
     $boss=(int)$e['supervisor_id'];$subs=$children[$subject]??[];$peers=$subs?array_values(array_filter($children[$boss],static fn(int $x)=>$x!==$subject&&isset($children[$x]))):array_values(array_diff($units[$unitKey($e)],[$subject]));
     $pairs=[[$boss,'atasan']];$notes=[];
