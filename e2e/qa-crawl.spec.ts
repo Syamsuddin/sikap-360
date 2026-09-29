@@ -1,7 +1,7 @@
 // e2e/qa-crawl.spec.ts — crawl menu + 3 alur di browser nyata. Gagal bila ada error JS, console error, atau 5xx.
 import { test, expect, Page } from '@playwright/test';
 const USER = process.env.QA_USER ?? 'pegawai3@example.test', ADMIN = 'pegawai1@example.test', PASS = process.env.QA_PASS ?? 'SikapDemo2026!';
-const PAGES = ['#dashboard', '#assessments', '#results', '#guide', '#employees', '#structure', '#periods', '#opd'];
+const PAGES = ['#dashboard', '#assessments', '#results', '#method', '#guide', '#employees', '#structure', '#periods', '#opd'];
 
 function watch(page: Page, errs: string[]) {
   page.on('pageerror', e => errs.push(`JS ${page.url()}: ${e.message}`));

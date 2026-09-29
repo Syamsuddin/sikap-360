@@ -6,7 +6,11 @@ Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang ter
 
 ## [Belum dirilis]
 
-Tidak ada migrasi database.
+Migrasi database: jalankan `database/upgrade-1.8-bobot.sql` (kolom `periods.weights`) sebelum memasang kode versi ini. Tanpa kolom itu, publikasi periode gagal.
+
+### Ditambahkan
+- Bobot komposisi penilai dapat diubah administrator kabupaten pada laman Metode, untuk Kondisi 1 (atasan/rekan/bawahan), Kondisi 2 (atasan/rekan), dan Kondisi 3 (atasan/bawahan). Tiap bobot bilangan bulat 1–99 dan jumlah tiap kondisi harus 100%. Bobot bawaan tetap 60/25/15, 75/25, dan 85/15. Perubahan bobot tercatat di log audit.
+- Bobot baru berlaku untuk periode yang belum dipublikasikan. Saat dipublikasikan, bobot yang berlaku disalin ke periode, sehingga hasil yang sudah diumumkan tidak ikut berubah. Periode yang dipublikasikan sebelum versi ini dihitung dengan bobot bawaan.
 
 ### Diubah
 - Penyimpanan dan pengiriman penilaian kini hanya ditentukan status periode. Selama periode dibuka, ASN dapat menyimpan dan mengirim penilaian meskipun tanggal hari ini berada di luar rentang periode (misalnya periode triwulan berikutnya yang dibuka lebih awal, atau pengisian yang berlanjut setelah triwulan berakhir). Administrator menghentikan pengisian dengan menutup periode.

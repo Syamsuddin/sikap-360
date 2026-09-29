@@ -39,6 +39,11 @@ final class Api
   if($this->scope()!==null&&(int)$e['opd_id']!==$this->scope())throw new ApiError('Pegawai berada di luar OPD Anda.',403);return (int)$e['opd_id'];
  }
  private function settings(): array {$out=[];foreach($this->all('SELECT name,value FROM settings') as $r)$out[$r['name']]=$r['value'];return $out+['kabupaten_name'=>'Hulu Sungai Selatan'];}
+ // Bobot tersimpan sebagai JSON; kosong atau rusak kembali ke bobot bawaan.
+ private function weightTable(?string $json): array {if($json===null)return Scoring::DEFAULT_WEIGHTS;try{return Scoring::normalizeWeights(json_decode($json,true,8,JSON_THROW_ON_ERROR));}catch(JsonException|DomainException){return Scoring::DEFAULT_WEIGHTS;}}
+ private function weights(): array {return $this->weightTable($this->settings()['scoring_weights']??null);}
+ // Periode terpublikasi memakai salinan bobot saat publikasi agar hasil yang sudah diumumkan tidak ikut berubah; yang terpublikasi sebelum bobot dapat diubah (salinan kosong) memakai bobot bawaan.
+ private function periodWeights(array $p): array {return $p['status']==='published'?$this->weightTable($p['weights']??null):$this->weights();}
  private function requiredText(array $body,string $key,int $max=160): string {$v=trim(is_string($body[$key]??null)?$body[$key]:'');if($v===''||mb_strlen($v)>$max)throw new ApiError('Kolom '.$key.' wajib diisi dan maksimal '.$max.' karakter.');return $v;}
  private function period(int $id,bool $lock=false): array {$p=$this->one('SELECT * FROM periods WHERE id=?'.($lock?' FOR UPDATE':''),[$id]);if(!$p)throw new ApiError('Periode tidak ditemukan.',404);return $p;}
  // Status periode yang menentukan: selama berstatus open, penilaian dapat disimpan dan dikirim di luar rentang tanggal; administrator menghentikannya dengan menutup periode.
@@ -58,8 +63,8 @@ final class Api
   if($action==='save_draft')return $this->saveDraft($body);
   if($action==='submit')return $this->submit($body);
   $this->admin();
-  if(in_array($action,['period_create','period_status','opd_save','settings_save'],true))$this->superadmin();
-  return match($action){'assignment_list'=>$this->listAssignments($body),'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
+  if(in_array($action,['period_create','period_status','opd_save','settings_save','weights_save'],true))$this->superadmin();
+  return match($action){'assignment_list'=>$this->listAssignments($body),'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),'weights_save'=>$this->saveWeights($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
  }
  private function login(array $body): array
  {
@@ -93,13 +98,14 @@ final class Api
   if(!$periodId||!array_filter($periods,static fn($p)=>(int)$p['id']===$periodId)){$default=null;foreach(['open','closed','published'] as $status){foreach($periods as $p)if($p['status']===$status){$default=$p;break 2;}}$periodId=(int)($default??$periods[0])['id'];}
   $p=$this->period($periodId);$ind=$this->indicators();$tasks=$this->all('SELECT id,period_id,subject_id,rater_role,status,version,feedback FROM assignments WHERE period_id=? AND rater_id=? ORDER BY id',[$periodId,$this->user['id']]);
   foreach($tasks as &$t){$t['answers']=(object)$this->answersFor((int)$t['id']);$t['employee']=$this->one('SELECT e.id,e.name,e.nip,e.position,e.unit,e.grade,o.name AS opd_name FROM employees e JOIN opd o ON o.id=e.opd_id WHERE e.id=?',[$t['subject_id']]);}
-  $result=Scoring::calculate($this->scoringRows($periodId,(int)$this->user['id']),$ind);$result['published']=$p['status']==='published';$result['visible']=$result['complete']&&($result['published']||$this->user['role']==='admin');
+  $p['weights']=$this->periodWeights($p);$periods=array_map(static function(array $x){unset($x['weights']);return $x;},$periods);
+  $result=Scoring::calculate($this->scoringRows($periodId,(int)$this->user['id']),$ind,$p['weights']);$result['published']=$p['status']==='published';$result['visible']=$result['complete']&&($result['published']||$this->user['role']==='admin');
   if(!$result['visible']){$result['score']=null;$result['dimensions']=[];}
   $user=$this->user;unset($user['auth_version'],$user['user_id']);
   $isAdmin=in_array($this->user['role'],['admin','admin_opd'],true);$scope=$this->scope();
   // Nama/jabatan/OPD atasan ikut dikirim agar atasan lintas OPD (mis. Bupati bagi kepala OPD) tetap tampil di lingkup admin OPD.
   $employees=$isAdmin?$this->all('SELECT e.*,u.role,o.name AS opd_name,o.code AS opd_code,s.name AS supervisor_name,s.position AS supervisor_position,s.opd_id AS supervisor_opd_id FROM employees e JOIN users u ON u.employee_id=e.id JOIN opd o ON o.id=e.opd_id LEFT JOIN employees s ON s.id=e.supervisor_id'.($scope!==null?' WHERE e.opd_id=?':'').' ORDER BY o.name,e.name',$scope!==null?[$scope]:[]):[];
-  return ['user'=>$user,'settings'=>$this->settings(),'opds'=>$this->all('SELECT o.*,(SELECT COUNT(*) FROM employees e WHERE e.opd_id=o.id AND e.active=1) AS employee_count FROM opd o ORDER BY o.name'),'periods'=>$periods,'period'=>$p,'indicators'=>$ind,'tasks'=>$tasks,'result'=>$result,'csrf'=>$_SESSION['csrf'],'employees'=>$employees];
+  return ['user'=>$user,'settings'=>$this->settings(),'opds'=>$this->all('SELECT o.*,(SELECT COUNT(*) FROM employees e WHERE e.opd_id=o.id AND e.active=1) AS employee_count FROM opd o ORDER BY o.name'),'periods'=>$periods,'period'=>$p,'weights'=>$this->weights(),'indicators'=>$ind,'tasks'=>$tasks,'result'=>$result,'csrf'=>$_SESSION['csrf'],'employees'=>$employees];
  }
  private function changePassword(array $b): array
  {
@@ -239,7 +245,7 @@ final class Api
     $subjects=[];foreach($rows as $row)$subjects[$row['subject_id']][]=$row;
     foreach($subjects as $subject=>$assignments){Scoring::validateComposition($assignments);if($status==='published'){if(!Scoring::calculate($this->scoringRows($id,(int)$subject),$this->indicators())['complete'])throw new ApiError('Seluruh penugasan wajib selesai sebelum publikasi.',409);}}
    }
-   $this->run('UPDATE periods SET status=?,published_at=? WHERE id=?',[$status,$status==='published'?date('Y-m-d H:i:s'):null,$id]);$this->audit('period_status_changed','period',$id,['from'=>$p['status'],'to'=>$status]);return ['ok'=>true];
+   $published=$status==='published';$this->run('UPDATE periods SET status=?,published_at=?,weights=? WHERE id=?',[$status,$published?date('Y-m-d H:i:s'):null,$published?json_encode($this->weights(),JSON_THROW_ON_ERROR):null,$id]);$this->audit('period_status_changed','period',$id,['from'=>$p['status'],'to'=>$status]);return ['ok'=>true];
   });
  }
  private function createAssignment(array $b): array
@@ -267,5 +273,14 @@ final class Api
  {
   $name=$this->requiredText($b,'kabupaten_name',120);
   $this->run('INSERT INTO settings(name,value) VALUES(?,?) ON DUPLICATE KEY UPDATE value=VALUES(value)',['kabupaten_name',$name]);$this->audit('settings_saved','settings',null,['kabupaten_name'=>$name]);return ['ok'=>true];
+ }
+ // Bobot baru berlaku untuk periode yang belum dipublikasikan; periode terpublikasi tetap memakai salinan bobotnya.
+ private function saveWeights(array $b): array
+ {
+  $weights=Scoring::normalizeWeights($b['weights']??null);
+  return $this->transaction(function()use($weights){
+   $old=$this->weights();$this->run('INSERT INTO settings(name,value) VALUES(?,?) ON DUPLICATE KEY UPDATE value=VALUES(value)',['scoring_weights',json_encode($weights,JSON_THROW_ON_ERROR)]);
+   $this->audit('weights_saved','settings',null,['from'=>$old,'to'=>$weights]);return ['weights'=>$weights];
+  });
  }
 }

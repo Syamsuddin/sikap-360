@@ -127,7 +127,7 @@ Pegawai yang belum diberi pasangan penilai belum menjadi peserta penilaian pada 
 
 ## Perhitungan
 
-Bobot mengikuti gambar pengguna, bukan klaim bobot universal yang diwajibkan regulasi.
+Bobot bawaan mengikuti gambar pengguna, bukan klaim bobot universal yang diwajibkan regulasi. Administrator kabupaten dapat mengubah angkanya pada laman Metode (bilangan bulat 1–99, jumlah tiap kondisi 100%). Bobot baru berlaku untuk periode yang belum dipublikasikan; saat publikasi, bobot disalin ke periode sehingga hasil yang sudah diumumkan tidak berubah.
 
 | Komposisi | Atasan | Rekan sejawat | Bawahan |
 | --- | ---: | ---: | ---: |
@@ -159,7 +159,7 @@ Skor adalah hasil kuantitatif rubrik. Aplikasi tidak menetapkan predikat resmi k
 - Login memakai akun lokal. SIMPEG, SSO, SKP/eKinerja, notifikasi email/WhatsApp, dan manajemen talenta belum diintegrasikan.
 - Unit kerja berupa nama unit. Cakupan admin saat ini seluruh aplikasi, belum ada administrator dengan pembatasan per OPD.
 - Data audit tersedia di tabel `audit_logs`, belum ada halaman penampil audit.
-- Instrumen tujuh indikator tetap untuk versi 1.0. Penggantian indikator dan bobot setelah ada data memerlukan versi instrumen/migrasi, bukan pengeditan langsung.
+- Instrumen tujuh indikator tetap untuk versi 1.0. Penggantian indikator setelah ada data memerlukan versi instrumen/migrasi, bukan pengeditan langsung. Bobot komposisi dapat diubah administrator kabupaten dan dikunci per periode saat publikasi.
 
 ## Struktur proyek
 
@@ -177,6 +177,7 @@ Skor adalah hasil kuantitatif rubrik. Aplikasi tidak menetapkan predikat resmi k
 | database/schema.sql | Struktur database dan tujuh indikator |
 | database/upgrade-1.1-struktur.sql | Migrasi kolom supervisor_id untuk instalasi yang dibuat sebelum fitur struktur organisasi |
 | database/upgrade-1.2-opd.sql | Migrasi multi-OPD (tabel opd, settings, employees.opd_id, peran admin_opd); tiap nilai unit lama menjadi satu OPD |
+| database/upgrade-1.8-bobot.sql | Kolom periods.weights untuk salinan bobot saat publikasi (bobot komposisi dapat diubah di laman Metode) |
 | config/app.php | Pembacaan konfigurasi lingkungan |
 | scripts/install.php | Instalasi awal melalui CLI |
 | scripts/seed-demo.php | Seeder data fiktif |

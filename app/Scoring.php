@@ -2,15 +2,34 @@
 declare(strict_types=1);
 final class Scoring
 {
- public static function weights(array $roles): ?array
+ // Tabel bobot per komposisi, dikunci dengan peran terurut. Angkanya dapat diubah administrator kabupaten (settings.scoring_weights); kunci dan perannya tetap.
+ public const DEFAULT_WEIGHTS = [
+  'atasan,bawahan,rekan' => ['atasan'=>60,'rekan'=>25,'bawahan'=>15],
+  'atasan,rekan' => ['atasan'=>75,'rekan'=>25],
+  'atasan,bawahan' => ['atasan'=>85,'bawahan'=>15],
+ ];
+ private const CONDITION_NAMES = ['atasan,bawahan,rekan'=>'Kondisi 1 (tiga peran)','atasan,rekan'=>'Kondisi 2 (tanpa bawahan)','atasan,bawahan'=>'Kondisi 3 (tanpa rekan sejawat)'];
+ public static function weights(array $roles, array $table = self::DEFAULT_WEIGHTS): ?array
  {
   $roles = array_values(array_unique($roles)); sort($roles);
-  return match(implode(',', $roles)) {
-   'atasan,bawahan,rekan' => ['atasan'=>60,'rekan'=>25,'bawahan'=>15],
-   'atasan,rekan' => ['atasan'=>75,'rekan'=>25],
-   'atasan,bawahan' => ['atasan'=>85,'bawahan'=>15],
-   default => null,
-  };
+  return $table[implode(',', $roles)] ?? null;
+ }
+ // Tabel bobot kiriman admin atau hasil baca database: tiga kondisi bawaan lengkap, tiap bobot bilangan bulat 1–99, jumlah per kondisi 100. Urutan mengikuti bawaan.
+ public static function normalizeWeights(mixed $table): array
+ {
+  if (!is_array($table)) throw new DomainException('Format bobot tidak valid.');
+  $out = [];
+  foreach (self::DEFAULT_WEIGHTS as $key=>$roles) {
+   $name = self::CONDITION_NAMES[$key];
+   if (!is_array($table[$key] ?? null)) throw new DomainException('Bobot ' . $name . ' wajib diisi.');
+   foreach (array_keys($roles) as $role) {
+    $weight = $table[$key][$role] ?? null;
+    if (!is_int($weight) || $weight < 1 || $weight > 99) throw new DomainException('Bobot ' . $role . ' pada ' . $name . ' harus bilangan bulat 1 sampai 99.');
+    $out[$key][$role] = $weight;
+   }
+   if (array_sum($out[$key]) !== 100) throw new DomainException('Jumlah bobot ' . $name . ' harus 100%, saat ini ' . array_sum($out[$key]) . '%.');
+  }
+  return $out;
  }
  public static function validateComposition(array $rows): void
  {
@@ -26,9 +45,9 @@ final class Scoring
   }
   if ($complete && (count($answers) !== count($indicatorIds) || array_diff($indicatorIds, array_map('intval', array_keys($answers))))) throw new DomainException('Lengkapi seluruh tujuh indikator sebelum mengirim.');
  }
- public static function calculate(array $rows, array $indicators): array
+ public static function calculate(array $rows, array $indicators, array $table = self::DEFAULT_WEIGHTS): array
  {
-  $weights = self::weights(array_column($rows, 'rater_role'));
+  $weights = self::weights(array_column($rows, 'rater_role'), $table);
   $received = count(array_filter($rows, static fn($r)=>$r['status']==='submitted'));
   $groups=[];
   foreach($weights ?? [] as $role=>$weight) {

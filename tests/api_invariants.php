@@ -5,9 +5,9 @@
 declare(strict_types=1);
 require __DIR__ . '/bootstrap.php'; require __DIR__ . '/http_client.php';
 $pdo = qa_pdo();
-$ALL = ['bootstrap', 'logout', 'password_change', 'save_draft', 'submit', 'employee_save', 'period_create', 'period_status', 'assignment_create', 'assignment_delete', 'supervisor_set', 'assignment_generate', 'opd_save', 'settings_save', 'tidak_ada'];
-$ADMIN = ['employee_save', 'period_create', 'period_status', 'assignment_create', 'assignment_delete', 'supervisor_set', 'assignment_generate', 'opd_save', 'settings_save'];
-$SUPER = ['period_create', 'period_status', 'opd_save', 'settings_save'];
+$ALL = ['bootstrap', 'logout', 'password_change', 'save_draft', 'submit', 'employee_save', 'period_create', 'period_status', 'assignment_create', 'assignment_delete', 'supervisor_set', 'assignment_generate', 'opd_save', 'settings_save', 'weights_save', 'tidak_ada'];
+$ADMIN = ['employee_save', 'period_create', 'period_status', 'assignment_create', 'assignment_delete', 'supervisor_set', 'assignment_generate', 'opd_save', 'settings_save', 'weights_save'];
+$SUPER = ['period_create', 'period_status', 'opd_save', 'settings_save', 'weights_save'];
 $guest = new QaHttp('guest'); $asn = new QaHttp('asn'); $admin = new QaHttp('admin');
 
 // 1. Tamu (R-19 / TAMU-TEMBUS)
@@ -86,6 +86,7 @@ $fields = [
  'assignment_generate' => ['period_id' => 1, 'opd_id' => 1],
  'opd_save' => ['id' => 0, 'name' => 'OPD Fuzz', 'code' => 'FUZZ', 'active' => 1],
  'settings_save' => ['kabupaten_name' => 'Hulu Sungai Selatan'],
+ 'weights_save' => ['weights' => ['atasan,bawahan,rekan' => ['atasan' => 60, 'rekan' => 25, 'bawahan' => 15], 'atasan,rekan' => ['atasan' => 75, 'rekan' => 25], 'atasan,bawahan' => ['atasan' => 85, 'bawahan' => 15]]],
  'period_create' => ['year' => 2027, 'quarter' => 1],
  'period_status' => ['period_id' => 1, 'status' => 'closed'],
  'assignment_create' => ['period_id' => 3, 'subject_id' => 1, 'rater_id' => 2, 'rater_role' => 'rekan'],

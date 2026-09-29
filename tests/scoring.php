@@ -18,6 +18,17 @@ $partial=$rows;unset($partial[1]['answers'][7]);check(!Scoring::calculate($parti
 $invalid=$rows;$invalid[1]['answers'][7]=6;check(!Scoring::calculate($invalid,$indicators)['complete'],'Nilai di luar skala memblokir hasil');
 check(Scoring::calculate([],$indicators)['score']===null,'Tanpa penugasan tidak menghasilkan angka');
 check(Scoring::weights(['rekan','bawahan'])===null,'Komposisi tanpa atasan ditolak');
+$custom=['atasan,bawahan,rekan'=>['atasan'=>50,'rekan'=>30,'bawahan'=>20],'atasan,rekan'=>['atasan'=>60,'rekan'=>40],'atasan,bawahan'=>['atasan'=>80,'bawahan'=>20]];
+check(Scoring::calculate($rows,$indicators,$custom)['score']===86.0,'Bobot ubahan 50/30/20 menghasilkan 86');
+check(Scoring::calculate($rows2,$indicators,$custom)['score']===92.0,'Bobot ubahan 60/40 menghasilkan 92');
+check(Scoring::calculate($rows3,$indicators,$custom)['weights']===['atasan'=>80,'bawahan'=>20],'Bobot ubahan dipakai untuk kondisi tanpa rekan');
+check(Scoring::normalizeWeights(Scoring::DEFAULT_WEIGHTS)===Scoring::DEFAULT_WEIGHTS,'Bobot bawaan lolos validasi');
+check(Scoring::normalizeWeights(['atasan,rekan'=>['rekan'=>40,'atasan'=>60],'atasan,bawahan'=>['bawahan'=>20,'atasan'=>80],'atasan,bawahan,rekan'=>['bawahan'=>20,'rekan'=>30,'atasan'=>50]])===$custom,'Urutan kondisi dan peran dikembalikan ke urutan bawaan');
+rejects(static fn()=>Scoring::normalizeWeights(array_replace($custom,['atasan,rekan'=>['atasan'=>60,'rekan'=>39]])),'Jumlah bobot selain 100 ditolak');
+rejects(static fn()=>Scoring::normalizeWeights(array_replace($custom,['atasan,bawahan'=>['atasan'=>100,'bawahan'=>0]])),'Bobot nol ditolak');
+rejects(static fn()=>Scoring::normalizeWeights(array_replace($custom,['atasan,rekan'=>['atasan'=>60.5,'rekan'=>39.5]])),'Bobot pecahan ditolak');
+rejects(static fn()=>Scoring::normalizeWeights(array_diff_key($custom,['atasan,rekan'=>true])),'Kondisi yang hilang ditolak');
+rejects(static fn()=>Scoring::normalizeWeights(null),'Bobot bukan objek ditolak');
 rejects(static fn()=>Scoring::validateComposition([$make('atasan',4),$make('rekan',4)]),'Ambang tiga rekan wajib');
 rejects(static fn()=>Scoring::validateComposition([...$rows,$make('atasan',4)]),'Atasan ganda ditolak');
 rejects(static fn()=>Scoring::validateAnswers([1=>0],range(1,7),false),'Nilai nol ditolak');
