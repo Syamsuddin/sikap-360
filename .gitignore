@@ -22,3 +22,8 @@ graphify-out/
 
 # Sistem operasi
 .DS_Store
+
+# Data pribadi ASN dan artefak impor (jangan commit)
+pegawai.sql
+*.xlsx
+__pycache__/

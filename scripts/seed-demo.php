@@ -74,13 +74,13 @@ function demoOpds(): array
 {
  return ['SETDA'=>'Sekretariat Daerah','BKPSDM'=>'Badan Kepegawaian dan Pengembangan Sumber Daya Manusia','DISDIKBUD'=>'Dinas Pendidikan dan Kebudayaan','DISKOMINFO'=>'Dinas Komunikasi dan Informatika','DINKES'=>'Dinas Kesehatan'];
 }
-// Pasangan penilai dari struktur (aturan sama dengan Api::generateAssignments): atasan langsung; rekan seatasan bila ≥3; bawahan langsung bila ≥3; hanya-atasan dilewati.
-function demoPairsFromStructure(array $members,array $boss): array
+// Pasangan penilai dari struktur (aturan sama dengan Api::generateAssignments): atasan langsung; rekan bila ≥3 (pejabat: sesama pejabat seatasan; staf: staf satu unit); bawahan langsung bila ≥3; hanya-atasan dilewati.
+function demoPairsFromStructure(array $members,array $boss,array $unit): array
 {
  $children=[];foreach($members as $n)if($boss[$n]!==null)$children[$boss[$n]][]=$n;
  $pairs=[];
  foreach($members as $n){
-  if($boss[$n]===null)continue;$peers=array_values(array_filter($children[$boss[$n]],static fn(int $x)=>$x!==$n));$subs=$children[$n]??[];
+  if($boss[$n]===null)continue;$subs=$children[$n]??[];$peers=$subs?array_values(array_filter($children[$boss[$n]],static fn(int $x)=>$x!==$n&&isset($children[$x]))):array_values(array_filter($members,static fn(int $x)=>$unit[$x]===$unit[$n]&&$x!==$n&&!isset($children[$x])));
   $rows=[[$n,$boss[$n],'atasan']];if(count($peers)>=3)foreach($peers as $r)$rows[]=[$n,$r,'rekan'];if(count($subs)>=3)foreach($subs as $r)$rows[]=[$n,$r,'bawahan'];
   if(count($rows)>1)array_push($pairs,...$rows);
  }
@@ -88,12 +88,12 @@ function demoPairsFromStructure(array $members,array $boss): array
 }
 function seedDemo(PDO $db): void
 {
- $db->beginTransaction();$hash=password_hash('SikapDemo2026!',PASSWORD_DEFAULT);$ids=[];$boss=[];$opdOf=[];
+ $db->beginTransaction();$hash=password_hash('SikapDemo2026!',PASSWORD_DEFAULT);$ids=[];$boss=[];$opdOf=[];$unitOf=[];
  $db->exec("INSERT INTO settings(name,value) VALUES('kabupaten_name','Hulu Sungai Selatan') ON DUPLICATE KEY UPDATE value=VALUES(value)");
  $opd=[];foreach(demoOpds() as $code=>$name){$s=$db->prepare('INSERT INTO opd(name,code) VALUES(?,?)');$s->execute([$name,$code]);$opd[$code]=(int)$db->lastInsertId();}
  foreach(demoSpec() as [$n,$name,$position,$unit,$grade,$bossNo,$role,$code]){
   $s=$db->prepare('INSERT INTO employees(name,nip,position,opd_id,unit,grade,email) VALUES(?,?,?,?,?,?,?)');$s->execute([$name,'DEMO-'.str_pad((string)$n,4,'0',STR_PAD_LEFT),$position,$opd[$code],$unit,$grade,'pegawai'.$n.'@example.test']);
-  $ids[$n]=(int)$db->lastInsertId();$boss[$n]=$bossNo;$opdOf[$n]=$code;
+  $ids[$n]=(int)$db->lastInsertId();$boss[$n]=$bossNo;$opdOf[$n]=$code;$unitOf[$n]=$unit;
   $s=$db->prepare('INSERT INTO users(employee_id,password_hash,role) VALUES(?,?,?)');$s->execute([$ids[$n],$hash,$role]);
  }
  $s=$db->prepare('UPDATE employees SET supervisor_id=? WHERE id=?');foreach($ids as $n=>$id)if($boss[$n]!==null)$s->execute([$ids[$boss[$n]],$id]);
@@ -102,7 +102,7 @@ function seedDemo(PDO $db): void
  $periods=[[$now['name'],$now['start_date'],$now['end_date'],'open'],[$prev['name'],$prev['start_date'],$prev['end_date'],'published']];
  $pairs=[];
  for($subject=1;$subject<=13;$subject++)for($rater=1;$rater<=14;$rater++){if($subject===$rater)continue;$pairs[]=[$subject,$rater,$rater===$boss[$subject]?'atasan':($rater!==14&&$boss[$rater]===$subject?'bawahan':'rekan')];}
- foreach(['DINKES','BKPSDM','DISKOMINFO','SETDA'] as $code)array_push($pairs,...demoPairsFromStructure(array_keys(array_filter($opdOf,static fn(string $c)=>$c===$code)),$boss));
+ foreach(['DINKES','BKPSDM','DISKOMINFO','SETDA'] as $code)array_push($pairs,...demoPairsFromStructure(array_keys(array_filter($opdOf,static fn(string $c)=>$c===$code)),$boss,$unitOf));
  foreach($periods as [$periodName,$from,$to,$status]){
   $s=$db->prepare('INSERT INTO periods(name,start_date,end_date,status,published_at) VALUES(?,?,?,?,?)');$s->execute([$periodName,$from,$to,$status,$status==='published'?$to.' 23:59:00':null]);$pid=(int)$db->lastInsertId();
   foreach($pairs as [$subject,$rater,$role]){

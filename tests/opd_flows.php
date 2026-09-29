@@ -36,7 +36,7 @@ check($c === 200 && $q('SELECT role FROM users WHERE employee_id=1')['role'] ===
 $opd = new QaHttp('opd36'); check($opd->login('pegawai36@example.test') === 200, 'O18 login admin OPD DISKOMINFO (pegawai36)');
 $b = $opd->bootstrap(); $ids = array_map('intval', array_column($b['employees'], 'id'));
 check($b['user']['role'] === 'admin_opd' && count($ids) === 16 && !in_array(1, $ids, true) && in_array(42, $ids, true) && count(array_unique(array_column($b['employees'], 'opd_id'))) === 1, 'O19 bootstrap admin OPD: hanya pegawai DISKOMINFO (15 + 1 baru), tanpa pegawai DISDIKBUD');
-check(count($b['assignments']) === 56 && count(array_unique(array_column($b['assignments'], 'opd_id'))) === 1, 'O20 assignments admin OPD hanya subjek DISKOMINFO (56)');
+[$c, $al] = $opd->call('assignment_list', ['period_id' => (int) $b['period']['id'], 'opd_id' => 1]); check($c === 200 && $al['total'] === 56 && $al['stats']['total'] === 56 && count($al['rows']) === 10 && count(array_unique(array_column($al['rows'], 'opd_id'))) === 1, "O20 assignment_list admin OPD hanya subjek DISKOMINFO (56), opd_id kiriman diabaikan ($c)");
 [$c] = $opd->call('supervisor_set', ['employee_id' => 3, 'supervisor_id' => 1]); check($c === 403, "O21 admin OPD ubah atasan pegawai OPD lain → 403 ($c)");
 [$c] = $opd->call('supervisor_set', ['employee_id' => 42, 'supervisor_id' => 2]); check($c === 422, "O22 admin OPD pilih atasan dari OPD lain → 422 ($c)");
 [$c] = $opd->call('supervisor_set', ['employee_id' => 42, 'supervisor_id' => 35]); check($c === 200 && (int) $q('SELECT supervisor_id s FROM employees WHERE id=42')['s'] === 35, "O23 admin OPD ubah atasan pegawai sendiri → 200 ($c)");
@@ -53,10 +53,10 @@ $adm->call('assignment_create', ['period_id' => $P, 'subject_id' => 3, 'rater_id
 [$c] = $opd->call('assignment_delete', ['id' => $aid]); check($c === 200, "O30 admin OPD hapus penugasan OPD sendiri → 200 ($c)");
 [$c, $b] = $opd->call('assignment_generate', ['period_id' => $P, 'opd_id' => $disdik]);
 // opd_id dari body diabaikan untuk admin OPD. DISKOMINFO + E (bawahan 36) + E2 (tanpa atasan):
-// 36: 1+3+5 = 9; 37, 39: 4 (+catatan bawahan 1); 38: 8; 40,47,48,49,E: 1+4 = 25; 42–45: 16 → 66. Peringatan: 35, 37, 39, 41, 46, E2 = 6.
+// Rekan: pejabat 36–39 saling rekan; staf satu unit. 36: 1+3+5 = 9; 37, 39: 1+3 = 4 (+catatan bawahan 1); 38: 1+3+4 = 8; 40,47,48,49,E (staf Sekretariat): 1+4 = 25; 42–45: 16 → 66. Peringatan: 35, E2 (tanpa atasan), 37, 39 (bawahan 1), 41, 46 (belum sah) = 6.
 $outside = (int) $q("SELECT COUNT(*) n FROM assignments a JOIN employees s ON s.id=a.subject_id WHERE a.period_id=$P AND s.opd_id<>$kominfo")['n'];
 check($c === 200 && $b['created'] === 66 && count($b['warnings']) === 6 && $outside === 1, "O31 admin OPD generate: 66 penugasan DISKOMINFO saja, opd_id lain diabaikan ($c, " . json_encode($b) . ", luar=$outside)");
-[$c, $b] = $adm->call('assignment_generate', ['period_id' => $P, 'opd_id' => $disdik]); check($c === 200 && $b['created'] === 86 && !array_filter($b['warnings'], static fn($w) => str_contains($w, 'DISKOMINFO')), "O32 admin kabupaten generate per OPD (DISDIKBUD): 86 dibuat (1 sudah ada), tanpa peringatan DISKOMINFO ($c, {$b['created']})");
+[$c, $b] = $adm->call('assignment_generate', ['period_id' => $P, 'opd_id' => $disdik]); check($c === 200 && $b['created'] === 74 && !array_filter($b['warnings'], static fn($w) => str_contains($w, 'DISKOMINFO')), "O32 admin kabupaten generate per OPD (DISDIKBUD): 74 dibuat (1 sudah ada), tanpa peringatan DISKOMINFO ($c, {$b['created']})");
 [$c] = $adm->call('assignment_generate', ['period_id' => $P, 'opd_id' => 999]); check($c === 404, "O33 generate OPD fiktif → 404 ($c)");
 // bersihkan
 $pdo->exec("DELETE FROM assignments WHERE period_id=$P"); $pdo->exec("DELETE FROM periods WHERE id=$P");

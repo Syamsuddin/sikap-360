@@ -93,10 +93,26 @@ Jika dipasang dalam subfolder, sesuaikan `APP_URL` dengan URL lengkap. Referensi
 
 Contoh konfigurasi Nginx tersedia pada `config/nginx.conf.example`. Sesuaikan socket PHP-FPM yang terpasang. Konfigurasi contoh memakai port HTTP untuk pemasangan awal. Untuk penggunaan instansi, aktifkan HTTPS, tetapkan `APP_URL` ke URL HTTPS yang benar, dan `SESSION_SECURE="1"`. Akses langsung database dan file `.env` dibatasi pada administrator server. Backup MySQL diperlukan sebelum perubahan lingkungan atau pembaruan aplikasi.
 
+## Impor pegawai dari SIASN
+
+`scripts/import-siasn.py` mengisi OPD, pegawai, akun, dan atasan langsung dari ekspor SIASN (`.xlsx`). Skrip ini **mengosongkan seluruh data** (kecuali indikator dan pengaturan) lalu mengisinya ulang, jadi backup database terlebih dahulu. Kebutuhan: Python 3 dengan `pandas`, `openpyxl`, `pymysql`, serta PHP CLI. Koneksi database dibaca dari `.env`.
+
+```bash
+python3 scripts/import-siasn.py ekspor-siasn.xlsx          # pratinjau statistik tanpa menulis
+python3 scripts/import-siasn.py ekspor-siasn.xlsx --apply --admin email.admin@instansi.go.id
+```
+
+- OPD diturunkan dari pohon UNOR; nomenklatur lama/baru digabung, Kelurahan masuk Kecamatan, UPT dan RSUD Daha Sejahtera masuk dinas induknya.
+- Atasan langsung adalah pejabat struktural unit pegawai, atau unit induknya bila jabatan itu kosong.
+- Guru, pegawai sekolah (SD/SMP/TK), dan Puskesmas tidak diimpor kecuali dengan `--semua`, karena kepala sekolah dan kepala Puskesmas tidak tercatat di SIASN.
+- Pegawai tanpa UNOR masuk OPD "Unit Organisasi Belum Terpetakan". Email yang kosong, rusak, atau dipakai bersama diganti `NIP@sikap360.local`.
+- Pegawai masuk dengan email SIASN-nya; kata sandi awal adalah NIP (18 digit) dan dapat diganti pada menu Profil. Impor ditolak bila sudah ada penugasan penilaian, kecuali dengan `--timpa-penilaian`.
+- Hanya kolom yang dipakai aplikasi yang diimpor; NIK, alamat, HP, dan NPWP diabaikan. Jangan simpan berkas ekspor SIASN di repositori.
+
 ## Urutan pengoperasian
 
 1. Masuk sebagai administrator kabupaten. Pada menu OPD & pengaturan, periksa nama kabupaten (bawaan Hulu Sungai Selatan) dan daftarkan OPD. Lengkapi data pegawai; tetapkan peran Admin OPD bagi pengelola tiap OPD agar mereka mengurus pegawai, struktur, dan pasangan penilai OPD-nya sendiri.
-2. Tetapkan atasan langsung setiap pegawai pada menu Struktur organisasi (atau pada formulir pegawai). Rekan sejawat (pegawai dengan atasan yang sama) dan bawahan langsung diturunkan otomatis, dan laman ini memperlihatkan apakah komposisi penilai tiap pegawai sudah sah.
+2. Tetapkan atasan langsung setiap pegawai pada menu Struktur organisasi (atau pada formulir pegawai). Rekan sejawat dan bawahan langsung diturunkan otomatis. Rekan pejabat (pegawai yang punya bawahan) adalah sesama pejabat dengan atasan yang sama, misalnya Sekretaris dan para Kepala Bidang di bawah Kepala Badan; rekan staf adalah staf lain dalam unit (UNOR) yang sama, dan laman ini memperlihatkan apakah komposisi penilai tiap pegawai sudah sah.
 3. Buat periode berstatus draf dengan memilih tahun dan triwulan (I: Januari–Maret, II: April–Juni, III: Juli–September, IV: Oktober–Desember), kemudian pilih periode tersebut. Nama dan rentang tanggal ditetapkan otomatis; satu triwulan hanya bisa dibuat sekali.
 4. Tekan Buat penugasan pada Struktur organisasi untuk mengisi pasangan penilai dari struktur, atau tambahkan penilai satu per satu pada Periode & penilai. Kelompok rekan/bawahan yang kurang dari tiga orang dilewati dan dilaporkan.
 5. Pilih peran berdasarkan posisi penilai terhadap pegawai yang dinilai. Jika A menilai bawahannya B, peran penilai A adalah Atasan. Di daftar tugas A, B diberi label Bawahan.
@@ -163,6 +179,7 @@ Skor adalah hasil kuantitatif rubrik. Aplikasi tidak menetapkan predikat resmi k
 | config/app.php | Pembacaan konfigurasi lingkungan |
 | scripts/install.php | Instalasi awal melalui CLI |
 | scripts/seed-demo.php | Seeder data fiktif |
+| scripts/import-siasn.py | Impor OPD, pegawai, akun, dan atasan langsung dari ekspor SIASN |
 | resources/app.css | Sumber tema dan stylesheet |
 | dist/ | Pratinjau statis |
 | tests/scoring.php | Pengujian aturan penilaian |

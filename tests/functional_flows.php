@@ -75,7 +75,9 @@ check($res['visible'] === true && (float) $res['score'] === 95.0 && $res['weight
 foreach ([[2, 'atasan'], [4, 'rekan'], [5, 'rekan'], [6, 'rekan']] as [$r, $role]) $adm->call('assignment_create', ['period_id' => $PF, 'subject_id' => 3, 'rater_id' => $r, 'rater_role' => $role]);
 $adm->call('period_status', ['period_id' => $PF, 'status' => 'open']);
 [$c] = $r4->call('save_draft', ['id' => $id(3, 4, $PF), 'version' => 1, 'answers' => $seven(4), 'feedback' => '']); check($c === 409, "B25 periode open tapi di luar rentang tanggal → 409 ($c)");
-$adminBoot = $adm->bootstrap($P); check(count($adminBoot['employees']) === 60 && count($adminBoot['assignments']) === 4 && !str_contains(json_encode($adminBoot), '$2y$'), 'B26 bootstrap admin: 60 pegawai (5 OPD), 4 penugasan periode, tanpa hash');
+$adminBoot = $adm->bootstrap($P); check(count($adminBoot['employees']) === 60 && !array_key_exists('assignments', $adminBoot) && !str_contains(json_encode($adminBoot), '$2y$'), 'B26 bootstrap admin: 60 pegawai (5 OPD), tanpa dump penugasan, tanpa hash');
+[$c, $al] = $adm->call('assignment_list', ['period_id' => $P]); check($c === 200 && $al['total'] === 4 && $al['stats']['total'] === 4 && count($al['rows']) === 4 && isset($al['rows'][0]['subject_name'], $al['rows'][0]['rater_name']), "B26b assignment_list admin: 4 penugasan berhalaman + nama ($c)");
+[$c] = $asn->call('assignment_list', ['period_id' => $P]); check($c === 403, "B26c assignment_list ditolak untuk ASN ($c)");
 
 // ================= ALUR C — Akun, kata sandi, nonaktif, pembatasan login =================
 $emp = ['name' => 'Uji Coba', 'nip' => '199001012020011001', 'position' => 'Analis', 'opd_id' => 1, 'unit' => 'QA', 'grade' => 'III/a', 'email' => 'UJI@example.test', 'password' => 'KataSandiUji123'];
@@ -83,6 +85,8 @@ foreach ([['nip' => '12345'], ['email' => 'bukan-email'], ['password' => 'pendek
 [$c, $b] = $adm->call('employee_save', $emp); $E = (int) ($b['id'] ?? 0); check($c === 200 && $E > 0 && $q("SELECT email FROM employees WHERE id=$E")['email'] === 'uji@example.test' && $q("SELECT role FROM users WHERE employee_id=$E")['role'] === 'asn', "C2 pegawai baru dibuat, email lowercase, role asn ($c)");
 [$c] = $adm->call('employee_save', array_merge($emp, ['nip' => '199001012020011002'])); check($c === 409, "C3 email duplikat → 409 ($c)");
 $u = new QaHttp('uji'); check($u->login('uji@example.test', 'KataSandiUji123') === 200, 'C4 akun baru bisa login');
+[$c] = $adm->call('employee_save', array_merge($emp, ['nip' => '199001012020011003', 'email' => 'nip@example.test', 'password' => ''])); $n = new QaHttp('nip');
+check($c === 200 && $n->login('nip@example.test', 'salah-sandi') === 401 && $n->login('nip@example.test', '199001012020011003') === 200, "C4b pegawai baru tanpa sandi: kata sandi awal = NIP ($c)");
 [$c] = $adm->call('employee_save', array_merge($emp, ['id' => $E, 'password' => '', 'position' => 'Analis Madya'])); check($c === 200 && $q("SELECT position FROM employees WHERE id=$E")['position'] === 'Analis Madya', "C5 edit tanpa sandi: profil berubah ($c)");
 [$c] = $u->call('bootstrap', []); check($c === 200, "C6 sesi tetap hidup setelah edit tanpa sandi ($c)");
 [$c] = $adm->call('employee_save', array_merge($emp, ['id' => $E, 'password' => 'SandiBaruAdmin123'])); [$c2] = $u->call('bootstrap', []); check($c === 200 && $c2 === 401, "C7 admin reset sandi → sesi lama pegawai 401 ($c/$c2)");

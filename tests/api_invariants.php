@@ -45,7 +45,7 @@ check(!$bad, 'Mutasi tanpa/dengan CSRF salah → 403 ' . implode(',', $bad));
 // 5. Kebocoran data pada bootstrap ASN (R-15)
 $b = $asn->bootstrap(); $raw = json_encode($b);
 check(!str_contains($raw, 'password') && !str_contains($raw, '$2y$'), 'bootstrap ASN tanpa password/hash');
-check($b['employees'] === [] && $b['assignments'] === [], 'bootstrap ASN employees/assignments kosong');
+check($b['employees'] === [] && !array_key_exists('assignments', $b), 'bootstrap ASN employees/assignments kosong');
 $asnId = (int) $b['user']['id']; $ids = array_map(static fn($t) => (int) $t['id'], $b['tasks']);
 $own = (int) $pdo->query('SELECT COUNT(*) FROM assignments WHERE id IN (' . implode(',', $ids) . ') AND rater_id=' . $asnId)->fetchColumn();
 check($own === count($ids) && count($ids) > 0, 'bootstrap ASN tasks semuanya rater_id = diri sendiri (' . count($ids) . ')');

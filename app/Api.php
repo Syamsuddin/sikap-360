@@ -58,7 +58,7 @@ final class Api
   if($action==='submit')return $this->submit($body);
   $this->admin();
   if(in_array($action,['period_create','period_status','opd_save','settings_save'],true))$this->superadmin();
-  return match($action){'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
+  return match($action){'assignment_list'=>$this->listAssignments($body),'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
  }
  private function login(array $body): array
  {
@@ -95,8 +95,7 @@ final class Api
   $user=$this->user;unset($user['auth_version'],$user['user_id']);
   $isAdmin=in_array($this->user['role'],['admin','admin_opd'],true);$scope=$this->scope();
   $employees=$isAdmin?$this->all('SELECT e.*,u.role,o.name AS opd_name,o.code AS opd_code FROM employees e JOIN users u ON u.employee_id=e.id JOIN opd o ON o.id=e.opd_id'.($scope!==null?' WHERE e.opd_id=?':'').' ORDER BY o.name,e.name',$scope!==null?[$scope]:[]):[];
-  $assignments=$isAdmin?$this->all('SELECT a.id,a.period_id,a.subject_id,a.rater_id,a.rater_role,a.status,s.opd_id FROM assignments a JOIN employees s ON s.id=a.subject_id WHERE a.period_id=?'.($scope!==null?' AND s.opd_id=?':'').' ORDER BY s.opd_id,a.subject_id,a.rater_role,a.id',$scope!==null?[$periodId,$scope]:[$periodId]):[];
-  return ['user'=>$user,'settings'=>$this->settings(),'opds'=>$this->all('SELECT o.*,(SELECT COUNT(*) FROM employees e WHERE e.opd_id=o.id AND e.active=1) AS employee_count FROM opd o ORDER BY o.name'),'periods'=>$periods,'period'=>$p,'indicators'=>$ind,'tasks'=>$tasks,'result'=>$result,'csrf'=>$_SESSION['csrf'],'employees'=>$employees,'assignments'=>$assignments];
+  return ['user'=>$user,'settings'=>$this->settings(),'opds'=>$this->all('SELECT o.*,(SELECT COUNT(*) FROM employees e WHERE e.opd_id=o.id AND e.active=1) AS employee_count FROM opd o ORDER BY o.name'),'periods'=>$periods,'period'=>$p,'indicators'=>$ind,'tasks'=>$tasks,'result'=>$result,'csrf'=>$_SESSION['csrf'],'employees'=>$employees];
  }
  private function changePassword(array $b): array
  {
@@ -134,7 +133,8 @@ final class Api
   $id=(int)($b['id']??0);$fields=[];foreach(['name','nip','position','unit','grade','email'] as $key)$fields[$key]=$this->requiredText($b,$key,$key==='nip'?18:($key==='grade'?80:160));
   if(!preg_match('/^\d{18}$/D',$fields['nip'])&&!preg_match('/^DEMO-\d{4}$/D',$fields['nip']))throw new ApiError('NIP harus 18 digit.');
   $fields['email']=strtolower($fields['email']);if(!filter_var($fields['email'],FILTER_VALIDATE_EMAIL))throw new ApiError('Email tidak valid.');
-  $password=is_string($b['password']??null)?$b['password']:'';if((!$id||$password!=='')&&(strlen($password)<12||strlen($password)>128))throw new ApiError('Kata sandi harus 12 sampai 128 karakter.');
+  // Kata sandi awal pegawai baru = NIP bila dikosongkan; saat edit, kosong berarti tidak diganti.
+  $password=is_string($b['password']??null)?$b['password']:'';if(!$id&&$password==='')$password=$fields['nip'];if((!$id||$password!=='')&&(strlen($password)<12||strlen($password)>128))throw new ApiError('Kata sandi harus 12 sampai 128 karakter.');
   $supervisor=(int)($b['supervisor_id']??0)?:null;
   // OPD: admin kabupaten memilih bebas; admin OPD selalu OPD-nya sendiri. Peran hanya diatur admin kabupaten (dan tidak untuk akunnya sendiri).
   $opdId=$this->scope()??(int)($b['opd_id']??0);if(!$this->one('SELECT id FROM opd WHERE id=? AND active=1',[$opdId]))throw new ApiError('OPD tidak aktif atau tidak ditemukan.',422);
@@ -167,20 +167,36 @@ final class Api
    $this->audit('supervisor_changed','employee',$id,['from'=>isset($e['supervisor_id'])?(int)$e['supervisor_id']:null,'to'=>$supervisor]);return ['ok'=>true];
   });
  }
- // Turunkan penugasan periode draf dari struktur: atasan langsung → atasan, satu atasan yang sama → rekan (min. 3), bawahan langsung → bawahan (min. 3).
+ // Turunkan penugasan periode draf dari struktur: atasan langsung → atasan, bawahan langsung → bawahan (min. 3), rekan (min. 3):
+ // pejabat (punya bawahan) → sesama pejabat dengan atasan yang sama; staf → staf lain satu unit (UNOR) dalam OPD yang sama.
  // Pegawai tanpa atasan dilewati; pasangan yang sudah ada tidak diduplikasi. Kelompok rekan/bawahan berjumlah 1–2 dilewati agar komposisi tetap sah.
+ private function listAssignments(array $b): array
+ {
+  $periodId=(int)($b['period_id']??0);$this->period($periodId);
+  $opdId=$this->scope()??((int)($b['opd_id']??0)?:null);
+  $where='a.period_id=?';$params=[$periodId];if($opdId!==null){$where.=' AND s.opd_id=?';$params[]=$opdId;}
+  $from=' FROM assignments a JOIN employees s ON s.id=a.subject_id JOIN employees r ON r.id=a.rater_id JOIN opd o ON o.id=s.opd_id WHERE ';
+  $stats=$this->one('SELECT COUNT(*) AS total,COALESCE(SUM(a.status=\'submitted\'),0) AS submitted FROM assignments a JOIN employees s ON s.id=a.subject_id WHERE '.$where,$params);
+  $role=(string)($b['role']??'');if(in_array($role,['atasan','rekan','bawahan'],true)){$where.=' AND a.rater_role=?';$params[]=$role;}
+  $status=(string)($b['status']??'');if(in_array($status,['pending','draft','submitted'],true)){$where.=' AND a.status=?';$params[]=$status;}
+  $q=trim((string)($b['q']??''));if($q!==''){$like='%'.addcslashes(mb_substr($q,0,80),'%_\\').'%';$where.=' AND (s.name LIKE ? OR r.name LIKE ?)';array_push($params,$like,$like);}
+  $total=(int)$this->one('SELECT COUNT(*) AS c'.$from.$where,$params)['c'];
+  $per=10;$pages=max(1,(int)ceil($total/$per));$page=min(max(1,(int)($b['page']??1)),$pages);
+  $rows=$this->all('SELECT a.id,a.subject_id,a.rater_id,a.rater_role,a.status,s.opd_id,o.code AS opd_code,s.name AS subject_name,r.name AS rater_name'.$from.$where.' ORDER BY s.opd_id,a.subject_id,a.rater_role,a.id LIMIT '.$per.' OFFSET '.(($page-1)*$per),$params);
+  return ['rows'=>$rows,'total'=>$total,'page'=>$page,'pages'=>$pages,'per'=>$per,'stats'=>['total'=>(int)$stats['total'],'submitted'=>(int)$stats['submitted']]];
+ }
  private function generateAssignments(array $b): array
  {
   $periodId=(int)($b['period_id']??0);$opdId=$this->scope()??((int)($b['opd_id']??0)?:null);
   return $this->transaction(function()use($periodId,$opdId){
    if($this->period($periodId,true)['status']!=='draft')throw new ApiError('Distribusi penilai dikunci setelah periode dibuka.',409);
    if($opdId!==null&&!$this->one('SELECT id FROM opd WHERE id=?',[$opdId]))throw new ApiError('OPD tidak ditemukan.',404);
-   $employees=$this->all('SELECT e.id,CONCAT(o.code," · ",e.name) AS name,e.supervisor_id FROM employees e JOIN opd o ON o.id=e.opd_id WHERE e.active=1'.($opdId!==null?' AND e.opd_id=?':'').' ORDER BY o.name,e.name',$opdId!==null?[$opdId]:[]);$children=[];foreach($employees as $e)if($e['supervisor_id']!==null)$children[(int)$e['supervisor_id']][]=(int)$e['id'];
+   $employees=$this->all('SELECT e.id,CONCAT(o.code," · ",e.name) AS name,e.supervisor_id,e.opd_id,e.unit FROM employees e JOIN opd o ON o.id=e.opd_id WHERE e.active=1'.($opdId!==null?' AND e.opd_id=?':'').' ORDER BY o.name,e.name',$opdId!==null?[$opdId]:[]);$children=[];$units=[];$unitKey=static fn(array $e)=>$e['opd_id'].'|'.mb_strtolower(trim($e['unit']));foreach($employees as $e)if($e['supervisor_id']!==null)$children[(int)$e['supervisor_id']][]=(int)$e['id'];foreach($employees as $e)if(!isset($children[(int)$e['id']]))$units[$unitKey($e)][]=(int)$e['id'];
    $existing=[];foreach($this->all('SELECT subject_id,rater_id FROM assignments WHERE period_id=?',[$periodId]) as $a)$existing[$a['subject_id'].'-'.$a['rater_id']]=true;
    $created=0;$skipped=0;$warnings=[];
    foreach($employees as $e){
     $subject=(int)$e['id'];if($e['supervisor_id']===null){$warnings[]=$e['name'].': tanpa atasan, tidak dinilai.';continue;}
-    $boss=(int)$e['supervisor_id'];$peers=array_values(array_filter($children[$boss]??[],static fn(int $x)=>$x!==$subject));$subs=$children[$subject]??[];
+    $boss=(int)$e['supervisor_id'];$subs=$children[$subject]??[];$peers=$subs?array_values(array_filter($children[$boss],static fn(int $x)=>$x!==$subject&&isset($children[$x]))):array_values(array_diff($units[$unitKey($e)],[$subject]));
     $pairs=[[$boss,'atasan']];$notes=[];
     if(count($peers)>=3)foreach($peers as $r)$pairs[]=[$r,'rekan'];elseif($peers)$notes[]=$e['name'].': rekan sejawat hanya '.count($peers).' orang (minimal 3), kelompok rekan dilewati.';
     if(count($subs)>=3)foreach($subs as $r)$pairs[]=[$r,'bawahan'];elseif($subs)$notes[]=$e['name'].': bawahan hanya '.count($subs).' orang (minimal 3), kelompok bawahan dilewati.';

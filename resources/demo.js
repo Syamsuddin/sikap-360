@@ -74,15 +74,15 @@ const SPEC=[
 [59,"Riduan, A.Md.","Pengadministrasi Umum","Bagian Umum","Pengatur (II/c)",53,"asn","SETDA"],
 [60,"Mahmudah, S.Sos.","Analis Tata Usaha","Bagian Umum","Penata (III/c)",53,"asn","SETDA"]
 ];
-// Pasangan penilai dari struktur (aturan sama dengan assignment_generate): atasan; rekan seatasan bila ≥3; bawahan bila ≥3; hanya-atasan dilewati.
-function pairsFromStructure(members,boss){const kids={};for(const n of members)if(boss[n])(kids[boss[n]]??=[]).push(n);const out=[];for(const n of members){if(!boss[n])continue;const peers=(kids[boss[n]]??[]).filter(x=>x!==n),subs=kids[n]??[];const rows=[[n,boss[n],'atasan']];if(peers.length>=3)peers.forEach(r=>rows.push([n,r,'rekan']));if(subs.length>=3)subs.forEach(r=>rows.push([n,r,'bawahan']));if(rows.length>1)out.push(...rows);}return out;}
+// Pasangan penilai dari struktur (aturan sama dengan assignment_generate): atasan; rekan bila ≥3 (pejabat: sesama pejabat seatasan; staf: staf satu unit); bawahan bila ≥3; hanya-atasan dilewati.
+function pairsFromStructure(members,boss,unit){const kids={};for(const n of members)if(boss[n])(kids[boss[n]]??=[]).push(n);const out=[];for(const n of members){if(!boss[n])continue;const subs=kids[n]??[],peers=subs.length?kids[boss[n]].filter(x=>x!==n&&kids[x]):members.filter(x=>unit[x]===unit[n]&&x!==n&&!kids[x]);const rows=[[n,boss[n],'atasan']];if(peers.length>=3)peers.forEach(r=>rows.push([n,r,'rekan']));if(subs.length>=3)subs.forEach(r=>rows.push([n,r,'bawahan']));if(rows.length>1)out.push(...rows);}return out;}
 function seed(){
  const employees=SPEC.map(([n,name,position,unit,grade,boss,role,code])=>{const o=OPDS.find(x=>x.code===code);return{id:n,name,nip:'DEMO-'+String(n).padStart(4,'0'),position,opd_id:o.id,opd_name:o.name,opd_code:o.code,unit,grade,email:`pegawai${n}@example.test`,supervisor_id:boss,active:1,role};});
  const periods=[{id:1,name:'Triwulan III 2026',start_date:'2026-07-01',end_date:'2026-09-30',status:'open'},{id:2,name:'Triwulan II 2026',start_date:'2026-04-01',end_date:'2026-06-30',status:'published'}];
  const assignments=[];let id=1;
  const bossMap=Object.fromEntries(SPEC.map(r=>[r[0],r[5]])),boss=n=>bossMap[n],pairs=[];
  for(let subject=1;subject<=13;subject++)for(let rater=1;rater<=14;rater++){if(subject!==rater)pairs.push([subject,rater,rater===boss(subject)?'atasan':rater!==14&&boss(rater)===subject?'bawahan':'rekan']);}
- for(const code of ['DINKES','BKPSDM','DISKOMINFO','SETDA'])pairs.push(...pairsFromStructure(SPEC.filter(r=>r[7]===code).map(r=>r[0]),bossMap));
+ for(const code of ['DINKES','BKPSDM','DISKOMINFO','SETDA'])pairs.push(...pairsFromStructure(SPEC.filter(r=>r[7]===code).map(r=>r[0]),bossMap,Object.fromEntries(SPEC.map(r=>[r[0],r[3]]))));
  for(const p of periods)for(const [subject,rater,role] of pairs){
   let status=p.id===2?'submitted':'pending';
   if(p.id===1&&rater===1)status=subject>=10?'submitted':subject===3||subject===4?'draft':'pending';
@@ -113,7 +113,8 @@ export async function demoRequest(action,body={}){
  const periodId=Number(body.period_id)||1;
  const opdOf=id=>db.opds.find(o=>o.id===Number(id)),withOpd=e=>({...e,opd_name:opdOf(e.opd_id)?.name??'',opd_code:opdOf(e.opd_id)?.code??''});
  if(action==='info')return{kabupaten_name:db.settings.kabupaten_name};
- if(action==='bootstrap')return{user:{...withOpd(db.employees[0]),role:db.admin?'admin':'asn'},settings:db.settings,opds:db.opds.map(o=>({...o,employee_count:db.employees.filter(e=>e.opd_id===o.id&&e.active).length})),periods:db.periods,period:db.periods.find(x=>x.id===periodId)??db.periods[0],indicators,tasks:db.assignments.filter(x=>x.period_id===periodId&&x.rater_id===1).map(x=>({...x,employee:withOpd(db.employees.find(e=>e.id===x.subject_id))})),result:result(periodId),employees:db.admin?db.employees.map(withOpd):[],assignments:db.admin?db.assignments.filter(x=>x.period_id===periodId).map(({answers,feedback,...x})=>({...x,opd_id:db.employees.find(e=>e.id===x.subject_id)?.opd_id})):[],csrf:'demo'};
+ if(action==='bootstrap')return{user:{...withOpd(db.employees[0]),role:db.admin?'admin':'asn'},settings:db.settings,opds:db.opds.map(o=>({...o,employee_count:db.employees.filter(e=>e.opd_id===o.id&&e.active).length})),periods:db.periods,period:db.periods.find(x=>x.id===periodId)??db.periods[0],indicators,tasks:db.assignments.filter(x=>x.period_id===periodId&&x.rater_id===1).map(x=>({...x,employee:withOpd(db.employees.find(e=>e.id===x.subject_id))})),result:result(periodId),employees:db.admin?db.employees.map(withOpd):[],csrf:'demo'};
+ if(action==='assignment_list'){const emp=id=>db.employees.find(e=>e.id===Number(id)),opd=Number(body.opd_id)||null,base=db.assignments.filter(x=>x.period_id===periodId&&(!opd||emp(x.subject_id)?.opd_id===opd)),q=String(body.q??'').toLowerCase(),rows=base.filter(x=>(!['atasan','rekan','bawahan'].includes(body.role)||x.rater_role===body.role)&&(!['pending','draft','submitted'].includes(body.status)||x.status===body.status)&&(!q||(emp(x.subject_id)?.name+' '+emp(x.rater_id)?.name).toLowerCase().includes(q))),per=10,pages=Math.max(1,Math.ceil(rows.length/per)),page=Math.min(Math.max(1,Number(body.page)||1),pages);return{rows:rows.slice((page-1)*per,page*per).map(x=>({id:x.id,subject_id:x.subject_id,rater_id:x.rater_id,rater_role:x.rater_role,status:x.status,opd_id:emp(x.subject_id)?.opd_id,opd_code:opdOf(emp(x.subject_id)?.opd_id)?.code??'',subject_name:emp(x.subject_id)?.name??'',rater_name:emp(x.rater_id)?.name??''})),total:rows.length,page,pages,per,stats:{total:base.length,submitted:base.filter(x=>x.status==='submitted').length}};}
  if(action==='demo_role'){db.admin=!db.admin;persist();return{};}
  if(action==='demo_reset'){db=seed();persist();return{};}
  if(action==='logout'){db.admin=false;persist();return{};}
@@ -152,7 +153,7 @@ export async function demoRequest(action,body={}){
   const opdId=Number(body.opd_id)||null,active=db.employees.filter(e=>e.active&&(!opdId||e.opd_id===opdId)),kids=id=>active.filter(e=>e.supervisor_id===id);let created=0,skipped=0;const warnings=[];let next=Math.max(0,...db.assignments.map(x=>x.id))+1;
   for(const e of active){
    if(!e.supervisor_id){warnings.push(`${e.name}: tanpa atasan, tidak dinilai.`);continue;}
-   const peers=kids(e.supervisor_id).filter(x=>x.id!==e.id),subs=kids(e.id),pairs=[[e.supervisor_id,'atasan']],notes=[];
+   const subs=kids(e.id),peers=subs.length?kids(e.supervisor_id).filter(x=>x.id!==e.id&&kids(x.id).length):active.filter(x=>x.opd_id===e.opd_id&&x.unit.trim().toLowerCase()===e.unit.trim().toLowerCase()&&x.id!==e.id&&!kids(x.id).length),pairs=[[e.supervisor_id,'atasan']],notes=[];
    if(peers.length>=3)peers.forEach(x=>pairs.push([x.id,'rekan']));else if(peers.length)notes.push(`${e.name}: rekan sejawat hanya ${peers.length} orang (minimal 3), kelompok rekan dilewati.`);
    if(subs.length>=3)subs.forEach(x=>pairs.push([x.id,'bawahan']));else if(subs.length)notes.push(`${e.name}: bawahan hanya ${subs.length} orang (minimal 3), kelompok bawahan dilewati.`);
    if(pairs.length===1){warnings.push(`${e.name}: komposisi belum sah (rekan ${peers.length}, bawahan ${subs.length}; kelompok minimal 3 orang), tidak dinilai.`);continue;}
