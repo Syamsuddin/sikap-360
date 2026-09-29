@@ -114,7 +114,7 @@ python3 scripts/import-siasn.py ekspor-siasn.xlsx --apply --admin email.admin@in
 1. Masuk sebagai administrator kabupaten. Pada menu OPD & pengaturan, periksa nama kabupaten (bawaan Hulu Sungai Selatan) dan daftarkan OPD. Lengkapi data pegawai; tetapkan peran Admin OPD bagi pengelola tiap OPD agar mereka mengurus pegawai, struktur, dan pasangan penilai OPD-nya sendiri.
 2. Tetapkan atasan langsung setiap pegawai pada menu Struktur organisasi (atau pada formulir pegawai). Rekan sejawat dan bawahan langsung diturunkan otomatis. Rekan pejabat (pegawai yang punya bawahan) adalah sesama pejabat dengan atasan yang sama, misalnya Sekretaris dan para Kepala Bidang di bawah Kepala Badan; rekan staf adalah staf lain dalam unit (UNOR) yang sama, dan laman ini memperlihatkan apakah komposisi penilai tiap pegawai sudah sah. Agar kepala OPD ikut dinilai, administrator kabupaten dapat mendaftarkan Bupati (OPD tingkat kabupaten, NIP diisi kode seperti `BUPATI-HSS`) dan menetapkannya sebagai atasan para kepala OPD; para kepala OPD lalu saling menjadi rekan sejawat.
 3. Buat periode berstatus draf dengan memilih tahun dan triwulan (I: Januari–Maret, II: April–Juni, III: Juli–September, IV: Oktober–Desember), kemudian pilih periode tersebut. Nama dan rentang tanggal ditetapkan otomatis; satu triwulan hanya bisa dibuat sekali.
-4. Tekan Buat penugasan pada Struktur organisasi untuk mengisi pasangan penilai dari struktur, atau tambahkan penilai satu per satu pada Periode & penilai. Kelompok rekan/bawahan yang kurang dari tiga orang dilewati dan dilaporkan.
+4. Tekan Buat penugasan pada Struktur organisasi untuk mengisi pasangan penilai dari struktur, atau tambahkan penilai satu per satu pada Periode & penilai. Rekan sejawat dan bawahan dipakai berapa pun jumlahnya (minimal satu orang); pegawai yang hanya punya atasan dilewati dan dilaporkan.
 5. Pilih peran berdasarkan posisi penilai terhadap pegawai yang dinilai. Jika A menilai bawahannya B, peran penilai A adalah Atasan. Di daftar tugas A, B diberi label Bawahan.
 6. Buka periode setelah komposisi lengkap. Distribusi penilai dikunci sejak periode dibuka.
 7. ASN mengisi tujuh indikator. Draf disimpan di server dan tetap tersedia setelah login kembali.
@@ -135,7 +135,7 @@ Bobot bawaan mengikuti gambar pengguna, bukan klaim bobot universal yang diwajib
 | Atasan dan rekan | 75% | 25% | 0% |
 | Atasan dan bawahan | 85% | 0% | 15% |
 
-Setiap pegawai memiliki tepat satu penilai atasan. Kelompok rekan dan bawahan yang digunakan masing-masing minimal tiga penilai. Komposisi di luar ketiga kondisi ditolak ketika periode dibuka. Aturan minimum tiga merupakan keputusan desain untuk mengurangi kemudahan menebak penilai, bukan angka yang disalin dari gambar.
+Setiap pegawai memiliki tepat satu penilai atasan. Kelompok rekan dan bawahan yang digunakan masing-masing minimal satu penilai. Komposisi di luar ketiga kondisi ditolak ketika periode dibuka. Kelompok berisi satu atau dua orang tetap dipakai agar pejabat dengan sedikit rekan atau bawahan (mis. kepala subbagian di sekretariat yang hanya memiliki dua subbagian) tetap menilai dan dinilai; konsekuensinya, penilai dalam kelompok kecil lebih mudah ditebak.
 
 Untuk setiap indikator:
 

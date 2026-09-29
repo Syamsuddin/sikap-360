@@ -29,7 +29,8 @@ rejects(static fn()=>Scoring::normalizeWeights(array_replace($custom,['atasan,ba
 rejects(static fn()=>Scoring::normalizeWeights(array_replace($custom,['atasan,rekan'=>['atasan'=>60.5,'rekan'=>39.5]])),'Bobot pecahan ditolak');
 rejects(static fn()=>Scoring::normalizeWeights(array_diff_key($custom,['atasan,rekan'=>true])),'Kondisi yang hilang ditolak');
 rejects(static fn()=>Scoring::normalizeWeights(null),'Bobot bukan objek ditolak');
-rejects(static fn()=>Scoring::validateComposition([$make('atasan',4),$make('rekan',4)]),'Ambang tiga rekan wajib');
+Scoring::validateComposition([$make('atasan',4),$make('rekan',4)]);check(Scoring::calculate([$make('atasan',5),$make('rekan',4)],$indicators)['score']===95.0,'Satu rekan cukup: bobot 75/25 menghasilkan 95');
+rejects(static fn()=>Scoring::validateComposition([$make('atasan',4)]),'Atasan saja ditolak');
 rejects(static fn()=>Scoring::validateComposition([...$rows,$make('atasan',4)]),'Atasan ganda ditolak');
 rejects(static fn()=>Scoring::validateAnswers([1=>0],range(1,7),false),'Nilai nol ditolak');
 rejects(static fn()=>Scoring::validateAnswers([1=>4.5],range(1,7),false),'Nilai pecahan ditolak');

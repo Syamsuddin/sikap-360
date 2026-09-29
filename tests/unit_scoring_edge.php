@@ -33,7 +33,9 @@ rejects(static fn() => Scoring::validateAnswers([' 1' => 4], $ids, false), 'vali
 
 // --- validateComposition (R-03) ---
 rejects(static fn() => Scoring::validateComposition([]), 'komposisi kosong ditolak');
-rejects(static fn() => Scoring::validateComposition([$make('atasan', 4), $make('bawahan', 4), $make('bawahan', 4)]), '2 bawahan ditolak');
+Scoring::validateComposition([$make('atasan', 4), $make('bawahan', 4)]); check(true, 'atasan+1 bawahan diterima (minimal 1)');
+Scoring::validateComposition([$make('atasan', 4), $make('rekan', 4), $make('bawahan', 4), $make('bawahan', 4)]); check(true, 'atasan+1 rekan+2 bawahan diterima');
+rejects(static fn() => Scoring::validateComposition([$make('atasan', 4)]), 'atasan saja ditolak');
 rejects(static fn() => Scoring::validateComposition([$make('rekan', 4), $make('rekan', 4), $make('rekan', 4)]), 'tanpa atasan ditolak');
 Scoring::validateComposition([$make('atasan', 4), $make('bawahan', 4), $make('bawahan', 4), $make('bawahan', 4)]); check(true, 'atasan+3 bawahan diterima');
 
@@ -45,8 +47,10 @@ $r = Scoring::calculate($pending, $ind); check($r['received'] === 0 && $r['expec
 $r = Scoring::calculate($full, $ind); check($r['score'] === 89.0 && count($r['dimensions']) === 7 && $r['groups'][0]['weight'] === 60, 'calculate 89 + 7 dimensi + grup 60/25/15 (R-01)');
 $mixed = $full; $mixed[0]['answers'] = [1 => 5, 2 => 1, 3 => 5, 4 => 1, 5 => 5, 6 => 1, 7 => 5];
 $r = Scoring::calculate($mixed, $ind); check($r['complete'] === true && $r['dimensions'][1]['score'] === 41.0, 'dimensi per indikator: atasan 1, rekan 4, bawahan 3 → (0.6·1+0.25·4+0.15·3)×20 = 41 (R-01/R-06)');
-$badComp = [$make('atasan', 5), $make('rekan', 4), $make('rekan', 4)];
-$r = Scoring::calculate($badComp, $ind); check($r['complete'] === false && $r['score'] === null, 'komposisi tak valid (2 rekan) → complete false walau semua submitted');
+$twoPeers = [$make('atasan', 5), $make('rekan', 4), $make('rekan', 4)];
+$r = Scoring::calculate($twoPeers, $ind); check($r['complete'] === true && $r['score'] === 95.0, 'atasan + 2 rekan sah → (0.75·5+0.25·4)×20 = 95');
+$badComp = [$make('atasan', 5), $make('atasan', 5), $make('rekan', 4)];
+$r = Scoring::calculate($badComp, $ind); check($r['complete'] === false && $r['score'] === null, 'komposisi tak valid (atasan ganda) → complete false walau semua submitted');
 $strScore = $full; $strScore[0]['answers'][1] = '5';
 $r = Scoring::calculate($strScore, $ind); check($r['complete'] === false, 'skor string "5" pada baris submitted → complete false (strict)');
 $missingKey = $full; $missingKey[0]['answers'] = [];

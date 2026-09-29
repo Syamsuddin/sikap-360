@@ -3,7 +3,7 @@ declare(strict_types=1);
 // Demo: Kabupaten Hulu Sungai Selatan dengan lima OPD (60 pegawai).
 //  DISDIKBUD (1–14): pola lama — semua pegawai lain menjadi rekan, agar data penilaian kaya (dipakai pengujian).
 //  DINKES (15–19, 50), BKPSDM (20–34), DISKOMINFO (35–49), SETDA (51–60): pasangan penilai diturunkan dari struktur dengan aturan yang sama seperti assignment_generate.
-//  Kepala OPD (puncak struktur) tidak dinilai; pegawai yang kelompok rekan/bawahannya < 3 (mis. 31, 41, 46) juga belum dinilai dan tampil "belum sah" di laman Struktur.
+//  Kepala OPD (puncak struktur) tidak dinilai; pegawai tanpa rekan maupun bawahan juga belum dinilai dan tampil "belum sah" di laman Struktur.
 function demoSpec(): array
 {
  // [nomor, nama, jabatan, unit kerja, pangkat, atasan (nomor), peran akun, kode OPD]
@@ -74,14 +74,14 @@ function demoOpds(): array
 {
  return ['SETDA'=>'Sekretariat Daerah','BKPSDM'=>'Badan Kepegawaian dan Pengembangan Sumber Daya Manusia','DISDIKBUD'=>'Dinas Pendidikan dan Kebudayaan','DISKOMINFO'=>'Dinas Komunikasi dan Informatika','DINKES'=>'Dinas Kesehatan'];
 }
-// Pasangan penilai dari struktur (aturan sama dengan Api::generateAssignments): atasan langsung; rekan bila ≥3 (pejabat: sesama pejabat seatasan; staf: staf satu unit); bawahan langsung bila ≥3; hanya-atasan dilewati.
+// Pasangan penilai dari struktur (aturan sama dengan Api::generateAssignments): atasan langsung; rekan bila ≥1 (pejabat: sesama pejabat seatasan; staf: staf satu unit); bawahan langsung bila ≥1; hanya-atasan dilewati.
 function demoPairsFromStructure(array $members,array $boss,array $unit): array
 {
  $children=[];foreach($members as $n)if($boss[$n]!==null)$children[$boss[$n]][]=$n;
  $pairs=[];
  foreach($members as $n){
   if($boss[$n]===null)continue;$subs=$children[$n]??[];$peers=$subs?array_values(array_filter($children[$boss[$n]],static fn(int $x)=>$x!==$n&&isset($children[$x]))):array_values(array_filter($members,static fn(int $x)=>$unit[$x]===$unit[$n]&&$x!==$n&&!isset($children[$x])));
-  $rows=[[$n,$boss[$n],'atasan']];if(count($peers)>=3)foreach($peers as $r)$rows[]=[$n,$r,'rekan'];if(count($subs)>=3)foreach($subs as $r)$rows[]=[$n,$r,'bawahan'];
+  $rows=[[$n,$boss[$n],'atasan']];foreach($peers as $r)$rows[]=[$n,$r,'rekan'];foreach($subs as $r)$rows[]=[$n,$r,'bawahan'];
   if(count($rows)>1)array_push($pairs,...$rows);
  }
  return $pairs;

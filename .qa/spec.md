@@ -7,7 +7,7 @@ Test hanya memakai baris DISAHKAN. Baris tanpa sumber = [PERLU KEPUTUSAN].
 |---|---|---|---|---|---|
 | R-01 | Bobot komposisi atasan+rekan+bawahan = 60/25/15 | 3 kelompok | 60,25,15 | tests/scoring.php, README | DISAHKAN |
 | R-02 | Bobot atasan+rekan = 75/25; atasan+bawahan = 85/15 | 2 kelompok | 75/25; 85/15 | tests/scoring.php | DISAHKAN |
-| R-03 | Tepat 1 atasan; rekan/bawahan (jika ada) minimal 3 orang | komposisi | DomainException | Scoring::validateComposition, VALIDASI #13 | DISAHKAN |
+| R-03 | Tepat 1 atasan; rekan/bawahan (jika ada) minimal 1 orang | komposisi | DomainException | Scoring::validateComposition, VALIDASI #13 | DISAHKAN |
 | R-04 | Skor 1–5 bilangan bulat; indikator harus dikenal (1–7) | 0,6,4.5,id 8 | HTTP 422, data tak berubah | VALIDASI #6 | DISAHKAN |
 | R-05 | Submit wajib 7 jawaban lengkap | 6 jawaban | seluruh batch ditolak | VALIDASI #7, #11 | DISAHKAN |
 | R-06 | Konversi skor: mean tertimbang ×20, rentang 20–100 | semua 1 / semua 5 | 20 / 100 | tests/scoring.php | DISAHKAN |

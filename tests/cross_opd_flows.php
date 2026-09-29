@@ -22,18 +22,18 @@ foreach ([14, 15, 20, 35, 51] as $h) { [$c] = $adm->call('supervisor_set', ['emp
 $emp = array_column($adm->bootstrap()['employees'], null, 'id');
 check($emp[14]['supervisor_name'] === 'Bupati Uji' && (int) $emp[14]['supervisor_opd_id'] === $pemkab && $emp[2]['supervisor_name'] === $emp[14]['name'], 'X9 bootstrap memuat nama dan OPD atasan, termasuk atasan lintas OPD');
 
-// Generate per OPD: kepala DISDIKBUD dinilai Bupati + 4 kepala OPD lain (bawahan hanya 1 → dilewati). 75 penugasan lama DISDIKBUD + 5 = 80.
+// Generate per OPD: kepala DISDIKBUD dinilai Bupati + 4 kepala OPD lain + 1 bawahan (2). 75 penugasan lama DISDIKBUD + 6 = 81.
 [$c, $b] = $adm->call('period_create', ['year' => 2034, 'quarter' => 1]); $P = (int) $b['id'];
 [$c, $b] = $adm->call('assignment_generate', ['period_id' => $P, 'opd_id' => $disdik]);
 $outside = (int) $q("SELECT COUNT(*) n FROM assignments a JOIN employees s ON s.id=a.subject_id WHERE a.period_id=$P AND s.opd_id<>$disdik")['n'];
-check($c === 200 && $b['created'] === 80 && $outside === 0 && $roles($P, 14) === ['atasan' => (string) $B, 'rekan' => '15,20,35,51'], "X10 generate per OPD: kepala DISDIKBUD → atasan Bupati + rekan 15,20,35,51; subjek tetap DISDIKBUD saja ($c, {$b['created']}, luar=$outside, " . json_encode($roles($P, 14)) . ')');
-check(count(array_filter($b['warnings'], static fn($w) => str_contains($w, 'Bambang') && str_contains($w, 'bawahan hanya 1'))) === 1 && !array_filter($b['warnings'], static fn($w) => str_contains($w, 'tanpa atasan')), 'X11 peringatan: bawahan kepala DISDIKBUD hanya 1; tak ada lagi "tanpa atasan" di DISDIKBUD');
+check($c === 200 && $b['created'] === 81 && $outside === 0 && $roles($P, 14) === ['atasan' => (string) $B, 'rekan' => '15,20,35,51', 'bawahan' => '2'], "X10 generate per OPD: kepala DISDIKBUD → atasan Bupati + rekan 15,20,35,51 + bawahan 2; subjek tetap DISDIKBUD saja ($c, {$b['created']}, luar=$outside, " . json_encode($roles($P, 14)) . ')');
+check($b['warnings'] === [], 'X11 tanpa peringatan di DISDIKBUD: bawahan tunggal kepala ikut dipakai, tak ada lagi "tanpa atasan" (' . json_encode($b['warnings']) . ')');
 $t = $bu->bootstrap($P)['tasks']; check(count($t) === 1 && $t[0]['subject_id'] === 14 && $t[0]['rater_role'] === 'atasan', 'X12 Bupati mendapat tugas menilai kepala DISDIKBUD');
 
-// Generate seluruh OPD: 230 lama + kepala 14, 15, 51 (1+4) dan 20, 35 (1+4+4) = 263. Peringatan: 17 − 5 "tanpa atasan" kepala + 1 Bupati + 3 "bawahan hanya 1" = 16.
+// Generate seluruh OPD: 240 lama + kepala 14, 15, 51 (1+4+1 bawahan) dan 20, 35 (1+4+4) = 276. Peringatan: 12 − 5 "tanpa atasan" kepala + 1 Bupati = 8.
 [$c, $b] = $adm->call('period_create', ['year' => 2034, 'quarter' => 2]); $P2 = (int) $b['id'];
 [$c, $b] = $adm->call('assignment_generate', ['period_id' => $P2]);
-check($c === 200 && $b['created'] === 263 && count($b['warnings']) === 16 && $roles($P2, 35) === ['atasan' => (string) $B, 'rekan' => '14,15,20,51', 'bawahan' => '36,37,38,39'], "X13 generate seluruh OPD → 263; kepala DISKOMINFO Kondisi 1 ($c, " . json_encode(['created' => $b['created'] ?? null, 'warnings' => count($b['warnings'] ?? []), '35' => $roles($P2, 35)]) . ')');
+check($c === 200 && $b['created'] === 276 && count($b['warnings']) === 8 && $roles($P2, 35) === ['atasan' => (string) $B, 'rekan' => '14,15,20,51', 'bawahan' => '36,37,38,39'], "X13 generate seluruh OPD → 276; kepala DISKOMINFO Kondisi 1 ($c, " . json_encode(['created' => $b['created'] ?? null, 'warnings' => count($b['warnings'] ?? []), '35' => $roles($P2, 35)]) . ')');
 [$c] = $adm->call('period_status', ['period_id' => $P2, 'status' => 'open']); check($c === 200, "X14 periode dengan kepala OPD lolos validasi komposisi saat dibuka ($c)");
 
 // Admin OPD DISKOMINFO (pegawai36): melihat atasan kepalanya, tetapi tidak dapat mengubah atau menambah atasan lintas OPD

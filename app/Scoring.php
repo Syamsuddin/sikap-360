@@ -31,12 +31,12 @@ final class Scoring
   }
   return $out;
  }
+ // Kelompok rekan/bawahan cukup satu penilai: kondisi yang sah sudah memastikan tiap kelompok yang dipakai berisi minimal satu orang.
  public static function validateComposition(array $rows): void
  {
   if (self::weights(array_column($rows, 'rater_role')) === null) throw new DomainException('Komposisi wajib: atasan + rekan + bawahan, atasan + rekan, atau atasan + bawahan.');
   $counts = array_count_values(array_column($rows, 'rater_role'));
   if (($counts['atasan'] ?? 0) !== 1) throw new DomainException('Setiap pegawai harus memiliki tepat satu penilai atasan.');
-  foreach (['rekan', 'bawahan'] as $role) if (isset($counts[$role]) && $counts[$role] < 3) throw new DomainException('Kelompok ' . $role . ' memerlukan minimal tiga orang penilai.');
  }
  public static function validateAnswers(array $answers, array $indicatorIds, bool $complete): void
  {

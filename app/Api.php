@@ -182,9 +182,9 @@ final class Api
    $this->audit('supervisor_changed','employee',$id,['from'=>isset($e['supervisor_id'])?(int)$e['supervisor_id']:null,'to'=>$supervisor]);return ['ok'=>true];
   });
  }
- // Turunkan penugasan periode draf dari struktur: atasan langsung → atasan, bawahan langsung → bawahan (min. 3), rekan (min. 3):
+ // Turunkan penugasan periode draf dari struktur: atasan langsung → atasan, bawahan langsung → bawahan (min. 1), rekan (min. 1):
  // pejabat (punya bawahan) → sesama pejabat dengan atasan yang sama, juga lintas OPD (kepala OPD di bawah Bupati); staf → staf lain satu unit (UNOR) dalam OPD yang sama.
- // Pegawai tanpa atasan dilewati; pasangan yang sudah ada tidak diduplikasi. Kelompok rekan/bawahan berjumlah 1–2 dilewati agar komposisi tetap sah.
+ // Pegawai tanpa atasan dilewati; pasangan yang sudah ada tidak diduplikasi. Pegawai tanpa rekan maupun bawahan dilewati karena komposisi hanya-atasan tidak sah.
  private function listAssignments(array $b): array
  {
   $periodId=(int)($b['period_id']??0);$this->period($periodId);
@@ -214,12 +214,11 @@ final class Api
     if($opdId!==null&&(int)$e['opd_id']!==$opdId)continue;
     $subject=(int)$e['id'];if($e['supervisor_id']===null){$warnings[]=$e['name'].': tanpa atasan, tidak dinilai.';continue;}
     $boss=(int)$e['supervisor_id'];$subs=$children[$subject]??[];$peers=$subs?array_values(array_filter($children[$boss],static fn(int $x)=>$x!==$subject&&isset($children[$x]))):array_values(array_diff($units[$unitKey($e)],[$subject]));
-    $pairs=[[$boss,'atasan']];$notes=[];
-    if(count($peers)>=3)foreach($peers as $r)$pairs[]=[$r,'rekan'];elseif($peers)$notes[]=$e['name'].': rekan sejawat hanya '.count($peers).' orang (minimal 3), kelompok rekan dilewati.';
-    if(count($subs)>=3)foreach($subs as $r)$pairs[]=[$r,'bawahan'];elseif($subs)$notes[]=$e['name'].': bawahan hanya '.count($subs).' orang (minimal 3), kelompok bawahan dilewati.';
+    $pairs=[[$boss,'atasan']];
+    foreach($peers as $r)$pairs[]=[$r,'rekan'];
+    foreach($subs as $r)$pairs[]=[$r,'bawahan'];
     // Atasan saja bukan komposisi yang sah (Kondisi 1–3 memerlukan rekan dan/atau bawahan), jadi pegawai ini dilewati seluruhnya.
-    if(count($pairs)===1){$warnings[]=$e['name'].': komposisi belum sah (rekan '.count($peers).', bawahan '.count($subs).'; kelompok minimal 3 orang), tidak dinilai.';continue;}
-    array_push($warnings,...$notes);
+    if(count($pairs)===1){$warnings[]=$e['name'].': komposisi belum sah (tanpa rekan sejawat maupun bawahan), tidak dinilai.';continue;}
     foreach($pairs as [$rater,$role]){if(isset($existing[$subject.'-'.$rater])){$skipped++;continue;}$this->run('INSERT INTO assignments(period_id,subject_id,rater_id,rater_role) VALUES(?,?,?,?)',[$periodId,$subject,$rater,$role]);$existing[$subject.'-'.$rater]=true;$created++;}
    }
    $this->audit('assignments_generated','period',$periodId,['created'=>$created,'skipped'=>$skipped,'opd_id'=>$opdId]);return ['created'=>$created,'skipped'=>$skipped,'warnings'=>$warnings];

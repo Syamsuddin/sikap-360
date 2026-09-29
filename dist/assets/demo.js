@@ -77,7 +77,7 @@ const SPEC=[
 [60,"Mahmudah, S.Sos.","Analis Tata Usaha","Bagian Umum","Penata (III/c)",53,"asn","SETDA"]
 ];
 // Pasangan penilai dari struktur (aturan sama dengan assignment_generate): atasan; rekan bila ≥3 (pejabat: sesama pejabat seatasan; staf: staf satu unit); bawahan bila ≥3; hanya-atasan dilewati.
-function pairsFromStructure(members,boss,unit){const kids={};for(const n of members)if(boss[n])(kids[boss[n]]??=[]).push(n);const out=[];for(const n of members){if(!boss[n])continue;const subs=kids[n]??[],peers=subs.length?kids[boss[n]].filter(x=>x!==n&&kids[x]):members.filter(x=>unit[x]===unit[n]&&x!==n&&!kids[x]);const rows=[[n,boss[n],'atasan']];if(peers.length>=3)peers.forEach(r=>rows.push([n,r,'rekan']));if(subs.length>=3)subs.forEach(r=>rows.push([n,r,'bawahan']));if(rows.length>1)out.push(...rows);}return out;}
+function pairsFromStructure(members,boss,unit){const kids={};for(const n of members)if(boss[n])(kids[boss[n]]??=[]).push(n);const out=[];for(const n of members){if(!boss[n])continue;const subs=kids[n]??[],peers=subs.length?kids[boss[n]].filter(x=>x!==n&&kids[x]):members.filter(x=>unit[x]===unit[n]&&x!==n&&!kids[x]);const rows=[[n,boss[n],'atasan']];peers.forEach(r=>rows.push([n,r,'rekan']));subs.forEach(r=>rows.push([n,r,'bawahan']));if(rows.length>1)out.push(...rows);}return out;}
 function seed(){
  const employees=SPEC.map(([n,name,position,unit,grade,boss,role,code])=>{const o=OPDS.find(x=>x.code===code);return{id:n,name,nip:'DEMO-'+String(n).padStart(4,'0'),position,opd_id:o.id,opd_name:o.name,opd_code:o.code,unit,grade,email:`pegawai${n}@example.test`,supervisor_id:boss,active:1,role};});
  const periods=[{id:1,name:'Triwulan III 2026',start_date:'2026-07-01',end_date:'2026-09-30',status:'open'},{id:2,name:'Triwulan II 2026',start_date:'2026-04-01',end_date:'2026-06-30',status:'published'}];
@@ -157,11 +157,10 @@ export async function demoRequest(action,body={}){
   const opdId=Number(body.opd_id)||null,active=db.employees.filter(e=>e.active&&(!opdId||e.opd_id===opdId)),kids=id=>active.filter(e=>e.supervisor_id===id);let created=0,skipped=0;const warnings=[];let next=Math.max(0,...db.assignments.map(x=>x.id))+1;
   for(const e of active){
    if(!e.supervisor_id){warnings.push(`${e.name}: tanpa atasan, tidak dinilai.`);continue;}
-   const subs=kids(e.id),peers=subs.length?kids(e.supervisor_id).filter(x=>x.id!==e.id&&kids(x.id).length):active.filter(x=>x.opd_id===e.opd_id&&x.unit.trim().toLowerCase()===e.unit.trim().toLowerCase()&&x.id!==e.id&&!kids(x.id).length),pairs=[[e.supervisor_id,'atasan']],notes=[];
-   if(peers.length>=3)peers.forEach(x=>pairs.push([x.id,'rekan']));else if(peers.length)notes.push(`${e.name}: rekan sejawat hanya ${peers.length} orang (minimal 3), kelompok rekan dilewati.`);
-   if(subs.length>=3)subs.forEach(x=>pairs.push([x.id,'bawahan']));else if(subs.length)notes.push(`${e.name}: bawahan hanya ${subs.length} orang (minimal 3), kelompok bawahan dilewati.`);
-   if(pairs.length===1){warnings.push(`${e.name}: komposisi belum sah (rekan ${peers.length}, bawahan ${subs.length}; kelompok minimal 3 orang), tidak dinilai.`);continue;}
-   warnings.push(...notes);
+   const subs=kids(e.id),peers=subs.length?kids(e.supervisor_id).filter(x=>x.id!==e.id&&kids(x.id).length):active.filter(x=>x.opd_id===e.opd_id&&x.unit.trim().toLowerCase()===e.unit.trim().toLowerCase()&&x.id!==e.id&&!kids(x.id).length),pairs=[[e.supervisor_id,'atasan']];
+   peers.forEach(x=>pairs.push([x.id,'rekan']));
+   subs.forEach(x=>pairs.push([x.id,'bawahan']));
+   if(pairs.length===1){warnings.push(`${e.name}: komposisi belum sah (tanpa rekan sejawat maupun bawahan), tidak dinilai.`);continue;}
    for(const [rater,role] of pairs){if(db.assignments.some(x=>x.period_id===periodId&&x.subject_id===e.id&&x.rater_id===rater)){skipped++;continue;}db.assignments.push({id:next++,period_id:periodId,subject_id:e.id,rater_id:rater,rater_role:role,status:'pending',answers:{},feedback:'',version:1});created++;}
   }
   persist();return{created,skipped,warnings};
@@ -186,7 +185,7 @@ export async function demoRequest(action,body={}){
   const rows=db.assignments.filter(x=>x.period_id===periodId);
   if(body.status==='open'){
    if(!rows.length)throw Error('Tambahkan penilai sebelum membuka periode.');
-   for(const subject of new Set(rows.map(x=>x.subject_id))){const a=rows.filter(x=>x.subject_id===subject);if(!weightsFor(a.map(x=>x.rater_role))||a.filter(x=>x.rater_role==='atasan').length!==1)throw Error('Komposisi memerlukan tepat satu atasan dan kelompok penilai pendamping.');for(const role of ['rekan','bawahan']){const count=a.filter(x=>x.rater_role===role).length;if(count>0&&count<3)throw Error('Minimal 3 penilai rekan/bawahan per kelompok.');}}
+   for(const subject of new Set(rows.map(x=>x.subject_id))){const a=rows.filter(x=>x.subject_id===subject);if(!weightsFor(a.map(x=>x.rater_role))||a.filter(x=>x.rater_role==='atasan').length!==1)throw Error('Komposisi memerlukan tepat satu atasan dan kelompok penilai pendamping.');}
   }
   if(body.status==='published'&&rows.some(x=>x.status!=='submitted'))throw Error('Seluruh penilaian wajib selesai sebelum publikasi.');
   p.status=body.status;p.weights??=DEFAULT_WEIGHTS;persist();return{};

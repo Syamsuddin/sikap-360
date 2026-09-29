@@ -14,6 +14,7 @@ Migrasi database: jalankan `database/upgrade-1.8-bobot.sql` sebelum memasang kod
 - Periode baru menyalin bobot periode terbaru. Pratinjau komposisi pada Struktur organisasi dan Dashboard memakai bobot periode terpilih.
 
 ### Diubah
+- Ambang kelompok rekan sejawat dan bawahan diturunkan dari tiga menjadi satu orang. Buat penugasan kini memakai rekan dan bawahan berapa pun jumlahnya, pembukaan periode menerima kelompok berisi satu atau dua penilai, dan laman Struktur organisasi tidak lagi menandai kelompok kecil sebagai tidak dipakai. Akibatnya pejabat seperti kepala subbagian di sekretariat yang hanya memiliki dua subbagian kini menilai atasan dan rekan sejawatnya. Pegawai yang hanya memiliki atasan (tanpa rekan maupun bawahan) tetap dilewati. Penugasan periode yang sudah dibuka tidak berubah; aturan baru berlaku saat penugasan dibuat untuk periode draf.
 - Logo aplikasi diganti dengan logo Kabupaten Hulu Sungai Selatan pada sidebar, laman login (lebih besar di layar lebar, menyesuaikan di ponsel), dan ikon tab browser.
 - Penyimpanan dan pengiriman penilaian kini hanya ditentukan status periode. Selama periode dibuka, ASN dapat menyimpan dan mengirim penilaian meskipun tanggal hari ini berada di luar rentang periode (misalnya periode triwulan berikutnya yang dibuka lebih awal, atau pengisian yang berlanjut setelah triwulan berakhir). Administrator menghentikan pengisian dengan menutup periode.
 

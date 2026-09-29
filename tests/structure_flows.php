@@ -36,24 +36,24 @@ $pdo->exec("DELETE FROM users WHERE employee_id=$new"); $pdo->exec("DELETE FROM 
 // Rekan: pejabat (punya bawahan) → sesama pejabat seatasan; staf → staf lain satu unit (UNOR) dalam OPD yang sama.
 // OPD 1: 14 → 2 → {1,3..8}; 1 → {9..13}. Subjek 2: atasan 14 + bawahan 7 → 8. Subjek 1: atasan 2 + bawahan 5 → 6 (tak ada pejabat lain di bawah 2). Subjek 3..8: atasan + 5 staf Sekretariat → 36. Subjek 9..13: atasan + 4 rekan → 25. Subtotal 75; 14 dilewati.
 // DINKES: 16 (atasan 15 + bawahan 4) 5; 17,18,19,50 (atasan + 3 rekan) 16 → 21; peringatan 15.
-// BKPSDM: pejabat di bawah 20 hanya 21, 22, 24 (23 tanpa bawahan dihitung staf) → rekan 2, dilewati. 21 (1+5 bawahan) 6; 22 (1+4) 5; 25,26,32,33,34 (1+4 staf Sekretariat) 25; 27–30 (1+3) 16 → 52; peringatan 20, 21 & 22 (rekan 2), 23 & 31 & 24 belum sah.
-// DISKOMINFO: pejabat 36–39 saling rekan (3). 36, 38 (1+3+4) 16; 37, 39 (1+3; bawahan 1 dilewati) 8; 40,47,48,49 (1+3) 16; 42–45 (1+3) 16 → 56; peringatan 35, 37 & 39 (bawahan 1), 41, 46 belum sah.
-// SETDA: 52, 53 (1+4 bawahan) 10; 57–60 (1+3) 16 → 26; peringatan 51, 54–56 belum sah (kepala bagian tanpa bawahan dihitung staf unitnya sendiri). Total 75+21+52+56+26 = 230, peringatan 17.
-check($c === 200 && $b['created'] === 230 && $b['skipped'] === 0 && count($b['warnings']) === 17 && count(array_filter($b['warnings'], static fn($w) => str_contains($w, 'Bambang'))) === 1 && count(array_filter($b['warnings'], static fn($w) => str_contains($w, 'belum sah'))) === 8 && count(array_filter($b['warnings'], static fn($w) => str_contains($w, 'tanpa atasan'))) === 5, "S16 generate seluruh OPD → 230 penugasan, 17 peringatan ($c, " . json_encode($b) . ')');
+// BKPSDM: pejabat di bawah 20 hanya 21, 22, 24 (23 tanpa bawahan dihitung staf) → saling rekan (2). 21 (1+2+5 bawahan) 8; 22 (1+2+4) 7; 24 (1+2+1) 4; 25,26,32,33,34 (1+4 staf Sekretariat) 25; 27–30 (1+3) 16 → 60; peringatan 20 (tanpa atasan), 23 & 31 belum sah.
+// DISKOMINFO: pejabat 36–39 saling rekan (3). 36, 38 (1+3+4) 16; 37, 39 (1+3+1 bawahan) 10; 40,47,48,49 (1+3) 16; 42–45 (1+3) 16 → 58; peringatan 35 (tanpa atasan), 41, 46 belum sah.
+// SETDA: 52, 53 (1+4 bawahan) 10; 57–60 (1+3) 16 → 26; peringatan 51 (tanpa atasan), 54–56 belum sah (kepala bagian tanpa bawahan dihitung staf unitnya sendiri). Total 75+21+60+58+26 = 240, peringatan 12 (5 tanpa atasan + 7 belum sah).
+check($c === 200 && $b['created'] === 240 && $b['skipped'] === 0 && count($b['warnings']) === 12 && count(array_filter($b['warnings'], static fn($w) => str_contains($w, 'Bambang'))) === 1 && count(array_filter($b['warnings'], static fn($w) => str_contains($w, 'belum sah'))) === 7 && count(array_filter($b['warnings'], static fn($w) => str_contains($w, 'tanpa atasan'))) === 5, "S16 generate seluruh OPD → 240 penugasan, 12 peringatan ($c, " . json_encode($b) . ')');
 $r = $q("SELECT COUNT(*) n, SUM(rater_role='atasan') a, SUM(rater_role='rekan') r, SUM(rater_role='bawahan') b FROM assignments WHERE period_id=$pid");
-check((int) $r['n'] === 230 && (int) $r['a'] === 47 && (int) $r['r'] === 142 && (int) $r['b'] === 41, "S17 komposisi DB: 47 atasan, 142 rekan, 41 bawahan (" . json_encode($r) . ')');
+check((int) $r['n'] === 240 && (int) $r['a'] === 48 && (int) $r['r'] === 148 && (int) $r['b'] === 44, "S17 komposisi DB: 48 atasan, 148 rekan, 44 bawahan (" . json_encode($r) . ')');
 check((int) $q("SELECT COUNT(*) n FROM assignments WHERE period_id=$pid AND subject_id=1 AND rater_role='bawahan'")['n'] === 5 && (int) $q("SELECT COUNT(*) n FROM assignments WHERE period_id=$pid AND subject_id=2 AND rater_role='bawahan'")['n'] === 7, 'S18 bawahan subjek 1 = 5, subjek 2 = 7');
-[$c, $b] = $adm->call('assignment_generate', ['period_id' => $pid]); check($c === 200 && $b['created'] === 0 && $b['skipped'] === 230, "S19 generate ulang idempoten: 0 dibuat, 230 dilewati ($c)");
+[$c, $b] = $adm->call('assignment_generate', ['period_id' => $pid]); check($c === 200 && $b['created'] === 0 && $b['skipped'] === 240, "S19 generate ulang idempoten: 0 dibuat, 240 dilewati ($c)");
 [$c] = $adm->call('period_status', ['period_id' => $pid, 'status' => 'open']); check($c === 200 && $q("SELECT status s FROM periods WHERE id=$pid")['s'] === 'open', "S20 periode hasil generate lolos validasi komposisi saat dibuka ($c)");
 [$c] = $adm->call('period_status', ['period_id' => $pid, 'status' => 'closed']);
 
 // Rekan staf mengikuti unit, bukan atasan: 11..13 pindah ke atasan 3 tetapi tetap di unit Subbagian Umum → subjek 9 tetap punya rekan staf 10..13.
-// Subjek 1 kini hanya punya 2 bawahan dan 1 rekan pejabat (3) → komposisi belum sah, dilewati.
+// Subjek 1 kini hanya punya 2 bawahan dan 1 rekan pejabat (3) → tetap dinilai (Kondisi 1), karena tiap kelompok cukup satu orang.
 foreach ([11, 12, 13] as $id) $adm->call('supervisor_set', ['employee_id' => $id, 'supervisor_id' => 3]);
 [$c, $b] = $adm->call('period_create', ['year' => 2031, 'quarter' => 1]); $pid2 = (int) $b['id'];
 [$c, $b] = $adm->call('assignment_generate', ['period_id' => $pid2]);
 $n9 = $q("SELECT COUNT(*) n, GROUP_CONCAT(CASE WHEN rater_role='rekan' THEN rater_id END ORDER BY rater_id) r FROM assignments WHERE period_id=$pid2 AND subject_id=9");
 check($c === 200 && (int) $n9['n'] === 5 && $n9['r'] === '10,11,12,13', "S21 subjek 9: rekan satu unit 10..13 walau berbeda atasan (" . json_encode($n9) . ')');
-$n1 = $q("SELECT SUM(rater_role='bawahan') b FROM assignments WHERE period_id=$pid2 AND subject_id=1");
-check((int) $n1['b'] === 0 && count(array_filter($b['warnings'], static fn($w) => str_contains($w, 'Dina') && str_contains($w, 'bawahan'))) === 1, 'S22 bawahan 2 orang dilewati dengan peringatan');
+$n1 = $q("SELECT SUM(rater_role='atasan') a, GROUP_CONCAT(CASE WHEN rater_role='rekan' THEN rater_id END) r, GROUP_CONCAT(CASE WHEN rater_role='bawahan' THEN rater_id END ORDER BY rater_id) b FROM assignments WHERE period_id=$pid2 AND subject_id=1");
+check((int) $n1['a'] === 1 && $n1['r'] === '3' && $n1['b'] === '9,10' && !array_filter($b['warnings'], static fn($w) => str_contains($w, 'Dina')), 'S22 subjek 1 dengan 1 rekan dan 2 bawahan tetap dinilai, tanpa peringatan (' . json_encode($n1) . ')');
 qa_summary();

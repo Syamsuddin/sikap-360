@@ -50,8 +50,8 @@ $mk = static fn(int $s, int $r, string $role) => $adm->call('assignment_create',
 [$c] = $mk(3, 2, 'boss'); check($c === 422, "B5 peran asing → 422 ($c)");
 [$c] = $mk(3, 2, 'atasan'); check($c === 200, "B6 atasan dibuat ($c)");
 [$c] = $mk(3, 2, 'rekan'); check($c === 409, "B7 penilai ganda → 409 ($c)");
+[$c, $b] = $adm->call('period_status', ['period_id' => $P, 'status' => 'open']); check($c === 422 && $q("SELECT status FROM periods WHERE id=$P")['status'] === 'draft', "B9 buka dengan atasan saja → 422, tetap draft (R-03) ($c)");
 [$c] = $mk(3, 4, 'rekan'); check($c === 200, "B8 1 rekan dibuat ($c)");
-[$c, $b] = $adm->call('period_status', ['period_id' => $P, 'status' => 'open']); check($c === 422 && $q("SELECT status FROM periods WHERE id=$P")['status'] === 'draft', "B9 buka dengan 1 rekan → 422, tetap draft (R-03) ($c)");
 $mk(3, 5, 'rekan'); $mk(3, 6, 'rekan');
 [$c] = $adm->call('period_status', ['period_id' => $P, 'status' => 'published']); check($c === 409, "B10 draft→published → 409 (R-13) ($c)");
 [$c] = $adm->call('period_status', ['period_id' => $P, 'status' => 'open']); check($c === 200, "B11 draft→open ($c)");
