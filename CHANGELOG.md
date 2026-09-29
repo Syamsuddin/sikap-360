@@ -4,6 +4,22 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [1.3.0] - 2026-09-29
+
+Tidak ada migrasi database pada rilis ini. Klien yang memakai `bootstrap` sebagai sumber daftar penugasan harus beralih ke `assignment_list` (lihat Diubah).
+
+### Ditambahkan
+- Aksi API `assignment_list` (admin dan Admin OPD): daftar penugasan satu periode per halaman (10 baris) dengan filter peran, status, pencarian nama pegawai atau penilai, dan OPD. Respons memuat nama pegawai, nama penilai, kode OPD, serta statistik total dan terkirim. Admin OPD tetap dibatasi ke OPD-nya; `opd_id` kiriman diabaikan.
+- `scripts/import-siasn.py`: mengisi OPD, pegawai, akun, dan atasan langsung dari ekspor SIASN (`.xlsx`), dengan mode pratinjau tanpa menulis, penolakan bila sudah ada penugasan penilaian, dan penanganan email kosong atau dipakai bersama. Petunjuk pada README.
+
+### Diubah
+- `bootstrap` tidak lagi mengembalikan `assignments`; daftar penugasan diambil lewat `assignment_list`. Tabel Distribusi penilai pada laman Periode & penilai memuat halamannya dari server.
+- Rekan sejawat pada Buat penugasan dan laman Struktur organisasi kini berjenjang: pejabat (pegawai yang punya bawahan) berekan dengan sesama pejabat di bawah atasan yang sama, staf berekan dengan staf lain dalam unit (UNOR) yang sama. Sebelumnya semua pegawai dengan atasan yang sama, termasuk staf yang langsung di bawah pimpinan, dicampur dengan pejabat. Seeder demo dan dokumentasi API mengikuti aturan ini.
+- Dokumentasi `employee_save` mencantumkan aturan kata sandi (12–128 karakter; pegawai baru dengan kata sandi kosong memakai NIP).
+
+### Diperbaiki
+- Laman tidak lagi berhenti pada "Memuat ruang penilaian..." bagi administrator pada data besar. Sebelumnya `bootstrap` memuat seluruh penugasan periode ke memori PHP (sekitar 209 ribu baris pada instalasi SIASN) sehingga melewati `memory_limit` 128 MB dan mengembalikan HTTP 500.
+
 ## [1.2.0] - 2026-09-13
 
 ### Ditambahkan
