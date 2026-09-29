@@ -4,6 +4,17 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [1.4.0] - 2026-09-29
+
+Tidak ada migrasi database.
+
+### Ditambahkan
+- Login dengan NIP. Kolom masuk menerima NIP atau email: isian yang mengandung "@" dicari sebagai email, selain itu sebagai NIP (spasi di dalam NIP diabaikan). Aksi `login` menerima kunci `username`; kunci lama `email` tetap diterima.
+
+### Diubah
+- Formulir masuk berlabel "NIP atau email" dan tidak lagi menampilkan petunjuk kata sandi awal.
+- Pesan gagal masuk menjadi "NIP/email atau kata sandi salah."
+
 ## [1.3.0] - 2026-09-29
 
 Tidak ada migrasi database pada rilis ini. Klien yang memakai `bootstrap` sebagai sumber daftar penugasan harus beralih ke `assignment_list` (lihat Diubah).
