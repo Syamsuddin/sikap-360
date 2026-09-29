@@ -20,6 +20,7 @@ Migrasi database: jalankan `database/upgrade-1.8-bobot.sql` sebelum memasang kod
 ### Diperbaiki
 - Modal "Pilih periode" tidak lagi menumpuk tombol periode (kelas `.stack` bentrok dengan komponen daisyUI). Periode terpilih ditandai dan rentang tanggalnya ditampilkan.
 - Panah pada kotak pilihan (select) tampil kembali.
+- Impor SIASN kini juga menonaktifkan pegawai berjabatan "PNS TUGAS BELAJAR", tidak hanya yang berkedudukan hukum "Tugas Belajar". Dokter tugas belajar yang dititipkan di BKPSDM tercatat berkedudukan "Aktif" di SIASN, sehingga sebelumnya ikut diimpor sebagai pegawai aktif dan mendapat penugasan penilaian.
 
 ## [1.7.0] - 2026-09-30
 

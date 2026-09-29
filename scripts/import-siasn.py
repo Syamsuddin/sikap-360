@@ -292,10 +292,13 @@ def build(path, include_functional):
             email = gov[i] if gov[i] and gov[i] not in shared else f'{nip}@{PLACEHOLDER_DOMAIN}'
             stats['email_pengganti'] += 1
         kedudukan = clean(r['KEDUDUKAN HUKUM NAMA'])
+        jabatan = clean(r['JABATAN NAMA'])
+        # Dokter tugas belajar dititipkan di BKPSDM dengan kedudukan "Aktif" tetapi jabatan "PNS TUGAS BELAJAR"; keduanya tidak dinilai.
+        study_leave = kedudukan == 'Tugas Belajar' or jabatan.upper() == 'PNS TUGAS BELAJAR'
         rows.append({
-            'nip': nip, 'name': full_name(r)[:160], 'position': (clean(r['JABATAN NAMA']) or '-')[:160],
+            'nip': nip, 'name': full_name(r)[:160], 'position': (jabatan or '-')[:160],
             'opd': code, 'node': node, 'unit': (unit or '-')[:160], 'grade': grade(r)[:80], 'email': email,
-            'active': 0 if kedudukan in ('Tugas Belajar', 'Pemberhentian Sementara') else 1,
+            'active': 0 if study_leave or kedudukan == 'Pemberhentian Sementara' else 1,
             'structural': clean(r['JENIS JABATAN NAMA']) == 'Jabatan Struktural', 'eselon': clean(r['ESELON NAMA']),
         })
     seen = Counter(r['email'] for r in rows)  # email pengganti bisa bentrok dengan email pribadi pegawai lain
