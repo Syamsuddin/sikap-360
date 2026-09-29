@@ -120,7 +120,7 @@ python3 scripts/import-siasn.py ekspor-siasn.xlsx --apply --admin email.admin@in
 7. ASN mengisi tujuh indikator. Draf disimpan di server dan tetap tersedia setelah login kembali.
 8. Kirim draf lengkap. Jawaban yang terkirim tidak bisa diedit.
 9. Setelah semua penugasan selesai, tutup periode dan publikasikan hasil.
-10. Jika periode ditutup terlalu cepat, admin membuka kembali periode yang belum dipublikasikan. Rentang tanggal tetap berlaku.
+10. Jika periode ditutup terlalu cepat, admin membuka kembali periode yang belum dipublikasikan. Pengisian mengikuti status periode, bukan rentang tanggal: selama periode dibuka, ASN tetap dapat menyimpan dan mengirim penilaian.
 11. ASN memilih periode yang dipublikasikan pada Hasil penilaian.
 
 Pegawai yang belum diberi pasangan penilai belum menjadi peserta penilaian pada periode tersebut. Penilaian diri sendiri ditolak. Pasangan penilai yang sama tidak bisa didaftarkan dua kali untuk pegawai/periode yang sama.

@@ -34,7 +34,7 @@ Semua perubahan jawaban serta status periode mengunci baris periode terlebih dah
 
 period_create membuat satu triwulan kalender: nama (`Triwulan I 2027`), start_date, dan end_date diturunkan server dari year + quarter. Triwulan yang sudah ada menghasilkan 409.
 
-Status periode: draft → open → closed → published. closed → open diizinkan sebelum publikasi. Rentang tanggal tetap membatasi penyimpanan dan pengiriman. published bersifat final di aplikasi versi ini.
+Status periode: draft → open → closed → published. closed → open diizinkan sebelum publikasi. Penyimpanan dan pengiriman hanya ditentukan status: diterima selama periode open, termasuk sebelum tanggal mulai atau setelah tanggal selesai, dan ditolak (409) setelah periode ditutup. published bersifat final di aplikasi versi ini.
 
 Pembatasan login: 10 kegagalan per akun atau 100 kegagalan per alamat IP dalam 15 menit menghasilkan 429. Alamat IP diambil dari X-Forwarded-For hanya bila permintaan datang dari proxy yang terdaftar pada TRUSTED_PROXIES.
 

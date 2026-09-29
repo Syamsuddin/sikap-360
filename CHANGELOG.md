@@ -4,6 +4,17 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [Belum dirilis]
+
+Tidak ada migrasi database.
+
+### Diubah
+- Penyimpanan dan pengiriman penilaian kini hanya ditentukan status periode. Selama periode dibuka, ASN dapat menyimpan dan mengirim penilaian meskipun tanggal hari ini berada di luar rentang periode (misalnya periode triwulan berikutnya yang dibuka lebih awal, atau pengisian yang berlanjut setelah triwulan berakhir). Administrator menghentikan pengisian dengan menutup periode.
+
+### Diperbaiki
+- Modal "Pilih periode" tidak lagi menumpuk tombol periode (kelas `.stack` bentrok dengan komponen daisyUI). Periode terpilih ditandai dan rentang tanggalnya ditampilkan.
+- Panah pada kotak pilihan (select) tampil kembali.
+
 ## [1.7.0] - 2026-09-30
 
 Tidak ada migrasi database.

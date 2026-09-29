@@ -74,7 +74,7 @@ check($res['visible'] === true && (float) $res['score'] === 95.0 && $res['weight
 [$c, $b] = $adm->call('period_create', ['year' => 2027, 'quarter' => 1]); $PF = (int) $b['id'];
 foreach ([[2, 'atasan'], [4, 'rekan'], [5, 'rekan'], [6, 'rekan']] as [$r, $role]) $adm->call('assignment_create', ['period_id' => $PF, 'subject_id' => 3, 'rater_id' => $r, 'rater_role' => $role]);
 $adm->call('period_status', ['period_id' => $PF, 'status' => 'open']);
-[$c] = $r4->call('save_draft', ['id' => $id(3, 4, $PF), 'version' => 1, 'answers' => $seven(4), 'feedback' => '']); check($c === 409, "B25 periode open tapi di luar rentang tanggal → 409 ($c)");
+[$c] = $r4->call('save_draft', ['id' => $id(3, 4, $PF), 'version' => 1, 'answers' => $seven(4), 'feedback' => '']); check($c === 200, "B25 periode open di luar rentang tanggal tetap menerima draf; status yang menentukan ($c)");
 $adminBoot = $adm->bootstrap($P); check(count($adminBoot['employees']) === 60 && !array_key_exists('assignments', $adminBoot) && !str_contains(json_encode($adminBoot), '$2y$'), 'B26 bootstrap admin: 60 pegawai (5 OPD), tanpa dump penugasan, tanpa hash');
 [$c, $al] = $adm->call('assignment_list', ['period_id' => $P]); check($c === 200 && $al['total'] === 4 && $al['stats']['total'] === 4 && count($al['rows']) === 4 && isset($al['rows'][0]['subject_name'], $al['rows'][0]['rater_name']), "B26b assignment_list admin: 4 penugasan berhalaman + nama ($c)");
 [$c] = $asn->call('assignment_list', ['period_id' => $P]); check($c === 403, "B26c assignment_list ditolak untuk ASN ($c)");

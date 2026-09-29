@@ -41,7 +41,8 @@ final class Api
  private function settings(): array {$out=[];foreach($this->all('SELECT name,value FROM settings') as $r)$out[$r['name']]=$r['value'];return $out+['kabupaten_name'=>'Hulu Sungai Selatan'];}
  private function requiredText(array $body,string $key,int $max=160): string {$v=trim(is_string($body[$key]??null)?$body[$key]:'');if($v===''||mb_strlen($v)>$max)throw new ApiError('Kolom '.$key.' wajib diisi dan maksimal '.$max.' karakter.');return $v;}
  private function period(int $id,bool $lock=false): array {$p=$this->one('SELECT * FROM periods WHERE id=?'.($lock?' FOR UPDATE':''),[$id]);if(!$p)throw new ApiError('Periode tidak ditemukan.',404);return $p;}
- private function openPeriod(array $period): void {$today=date('Y-m-d');if($period['status']!=='open'||$today<$period['start_date']||$today>$period['end_date'])throw new ApiError('Periode tidak sedang menerima penilaian.',409);}
+ // Status periode yang menentukan: selama berstatus open, penilaian dapat disimpan dan dikirim di luar rentang tanggal; administrator menghentikannya dengan menutup periode.
+ private function openPeriod(array $period): void {if($period['status']!=='open')throw new ApiError('Periode tidak sedang menerima penilaian.',409);}
  private function indicators(): array {return $this->all('SELECT * FROM indicators ORDER BY id');}
  private function answersFor(int $id): array {$out=[];foreach($this->all('SELECT indicator_id,score FROM answers WHERE assignment_id=?',[$id]) as $a)$out[(int)$a['indicator_id']]=(int)$a['score'];return $out;}
  private function scoringRows(int $periodId,int $subjectId): array {$rows=$this->all('SELECT id,rater_role,status FROM assignments WHERE period_id=? AND subject_id=?',[$periodId,$subjectId]);foreach($rows as &$r)$r['answers']=$this->answersFor((int)$r['id']);return $rows;}
