@@ -1,21 +1,7 @@
 // e2e/qa-crawl.spec.ts — crawl menu + 3 alur di browser nyata. Gagal bila ada error JS, console error, atau 5xx.
-import { test, expect, Page } from '@playwright/test';
-const USER = process.env.QA_USER ?? 'pegawai3@example.test', ADMIN = 'pegawai1@example.test', PASS = process.env.QA_PASS ?? 'SikapDemo2026!';
+import { test, expect } from '@playwright/test';
+import { USER, ADMIN, watch, login, openEvaluation } from './helpers';
 const PAGES = ['#dashboard', '#assessments', '#results', '#method', '#guide', '#employees', '#structure', '#periods', '#opd'];
-
-function watch(page: Page, errs: string[]) {
-  page.on('pageerror', e => errs.push(`JS ${page.url()}: ${e.message}`));
-  // 401 pada cek sesi awal (bootstrap sebelum login) adalah perilaku normal SPA, bukan error.
-  page.on('console', m => { if (m.type() === 'error' && !/status of 401/.test(m.text())) errs.push(`console ${page.url()}: ${m.text()}`); });
-  page.on('response', r => { if (r.status() >= 500) errs.push(`${r.status()} ${r.url()}`); });
-}
-async function login(page: Page, username: string) {
-  await page.goto('/#login');
-  await page.locator('#login-form input[name=username]').fill(username);
-  await page.locator('#login-form input[type=password]').fill(PASS);
-  await Promise.all([page.waitForResponse(r => r.url().includes('action=bootstrap') && r.status() === 200), page.locator('#login-form button[type=submit]').click()]);
-  await expect(page.locator('#main-content')).toBeVisible();
-}
 
 test('crawl: admin membuka semua menu tanpa error JS/console/5xx', async ({ page }) => {
   const errs: string[] = []; watch(page, errs);
@@ -27,11 +13,7 @@ test('crawl: admin membuka semua menu tanpa error JS/console/5xx', async ({ page
 test('alur ASN: buka tugas, isi 7 indikator, simpan draf, muat ulang tetap tersimpan', async ({ page }) => {
   const errs: string[] = []; watch(page, errs);
   await login(page, USER);
-  await page.goto('/#assessments'); await page.waitForLoadState('networkidle');
-  const link = page.locator('a[href^="#evaluate/"]', { hasText: /Nilai|Lanjutkan/ }).first(); await expect(link).toBeVisible();
-  const href = await link.getAttribute('href'); await link.click();
-  await expect(page.locator('#evaluation-form')).toBeVisible();
-  for (let i = 1; i <= 7; i++) await page.locator(`input[name="indicator-${i}"][value="4"]`).check({ force: true });
+  const href = await openEvaluation(page);
   await page.locator('#feedback').fill('E2E draf');
   const [res] = await Promise.all([page.waitForResponse(r => r.url().includes('action=save_draft')), page.locator('button[data-action="save-draft"]').click()]);
   expect(res.status(), await res.text()).toBe(200);

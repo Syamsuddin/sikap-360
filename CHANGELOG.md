@@ -4,6 +4,16 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [Belum dirilis]
+
+Tidak ada migrasi database.
+
+### Diperbaiki
+- Formulir Edit/Tambah pegawai dan Edit/Tambah OPD kini benar-benar tersimpan. Sejak v1.2.0, tombol Simpan pada kedua formulir memuat ulang halaman tanpa menyimpan apa pun. Isian formulir, termasuk kata sandi baru bila diisi, ikut terkirim sebagai query string GET dan tercatat di log akses server serta riwayat browser. Penyebabnya, kedua formulir memuat isian tersembunyi bernama `id`, sehingga `form.id` di handler submit menunjuk isian itu, bukan id formulir (DOM clobbering). Handler kini membaca atribut `id` dan mencegah pengiriman biasa untuk semua formulir, kecuali latar modal.
+- Tombol yang memicu permintaan ke server (Simpan draf, Konfirmasi kirim, simpan formulir, dan Masuk) kini menampilkan spinner dan label proses seperti "Menyimpan…" atau "Mengirim…" selama menunggu. Bila server belum menjawab dalam 10 detik, muncul pemberitahuan bahwa server lambat. Sebelumnya tombol hanya nonaktif tanpa tanda apa pun, sehingga terlihat tidak merespons ketika server lambat.
+- Permintaan yang tidak dijawab server dalam 65 detik (sedikit di atas batas 60 detik nginx) kini dibatalkan dengan pesan "Server tidak merespons", lalu tombol aktif kembali. Sebelumnya permintaan menunggu tanpa batas dan semua tombol terkunci. Kegagalan jaringan menampilkan "Tidak dapat terhubung ke server", dan halaman galat HTML dari nginx (misalnya 504) menampilkan nomor status HTTP, bukan "Respons server tidak dapat dibaca".
+- Pola validasi kode OPD tidak lagi ditolak browser. Pola lama `[A-Za-z0-9_-]` tidak sah dalam mode regex `v` yang dipakai atribut `pattern`, sehingga validasi di browser diabaikan dan console mencatat error.
+
 ## [1.8.0] - 2026-09-30
 
 Migrasi database: jalankan `database/upgrade-1.8-bobot.sql` sebelum memasang kode versi ini. Migrasi menambah kolom `periods.weights` dan mengisi periode yang sudah ada dengan bobot bawaan. Tanpa kolom itu, pembuatan dan perubahan status periode gagal.
