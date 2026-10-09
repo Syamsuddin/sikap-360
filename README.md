@@ -27,7 +27,7 @@ Satu instalasi melayani satu kabupaten (nama dinamis, bawaan Hulu Sungai Selatan
 - Penguncian jawaban setelah dikirim, nomor versi draf untuk mencegah penimpaan antar sesi.
 - Hasil pribadi gabungan, grafik indikator, pilihan periode, dan cetak melalui browser.
 - Penambahan/edit pegawai, akun ASN, perubahan kata sandi, ekspor CSV.
-- Pembuatan periode, distribusi penilai, buka/tutup/buka kembali, dan publikasi.
+- Pembuatan periode, distribusi penilai, buka/tutup/buka kembali, publikasi, dan hapus periode draf yang belum memiliki penugasan, langsung dari tabel periode dengan kolom progres per periode.
 - Audit tindakan di database, CSRF, sesi HttpOnly, PDO prepared statements, pembatasan percobaan login.
 
 ## Dua bentuk penggunaan
@@ -117,7 +117,7 @@ python3 scripts/import-siasn.py ekspor-siasn.xlsx --apply --admin email.admin@in
 3. Buat periode berstatus draf dengan memilih tahun dan triwulan (I: Januari–Maret, II: April–Juni, III: Juli–September, IV: Oktober–Desember), kemudian pilih periode tersebut. Nama dan rentang tanggal ditetapkan otomatis; satu triwulan hanya bisa dibuat sekali. Periode baru menyalin bobot serta tema dan lima indikator tematik periode terbaru; ganti tema dan butir tematik triwulan itu pada laman Metode sebelum periode dibuka.
 4. Tekan Buat penugasan pada Struktur organisasi untuk mengisi pasangan penilai dari struktur, atau tambahkan penilai satu per satu pada Periode & penilai. Rekan sejawat dan bawahan dipakai berapa pun jumlahnya (minimal satu orang); pegawai yang hanya punya atasan dilewati dan dilaporkan.
 5. Pilih peran berdasarkan posisi penilai terhadap pegawai yang dinilai. Jika A menilai bawahannya B, peran penilai A adalah Atasan. Di daftar tugas A, B diberi label Bawahan.
-6. Buka periode setelah komposisi lengkap. Distribusi penilai dikunci sejak periode dibuka.
+6. Buka periode setelah komposisi lengkap. Distribusi penilai dikunci sejak periode dibuka. Tombol Buka, Tutup, Buka kembali, dan Publikasikan tersedia di tiap baris tabel periode maupun di bagian periode terpilih. Bila periode lain masih aktif, dialog konfirmasi memperingatkan bahwa kedua periode akan aktif bersamaan dan pegawai otomatis diarahkan ke periode aktif dengan tanggal mulai terbaru. Periode draf yang salah dibuat dan belum memiliki penugasan dapat dihapus dari tabel; periode yang sudah memiliki penugasan, sudah dibuka, atau satu-satunya periode tidak dapat dihapus.
 7. ASN mengisi tujuh indikator BerAKHLAK dan lima indikator tematik (bila periode memilikinya). Draf disimpan di server dan tetap tersedia setelah login kembali.
 8. Kirim draf lengkap. Jawaban yang terkirim tidak bisa diedit.
 9. Pantau progres pengisian pada Dashboard admin (khusus administrator kabupaten). Kartu atas merangkum seluruh kabupaten; tabel bawah merinci tiap OPD, dan urutan "Progres terendah" menampilkan OPD yang perlu didorong lebih dulu. Penugasan dan pegawai dihitung menurut OPD pegawai yang dinilai, penilai menurut OPD penilai. Laman ini hanya menampilkan jumlah, tanpa nilai maupun identitas penilai.

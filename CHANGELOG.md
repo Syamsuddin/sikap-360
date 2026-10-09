@@ -4,6 +4,20 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [Belum dirilis]
+
+Tidak ada migrasi database.
+
+### Ditambahkan
+- Tombol aksi status langsung di tiap baris tabel periode pada laman Periode & penilai (administrator kabupaten): Buka untuk draf, Tutup untuk periode aktif, Buka kembali dan Publikasikan untuk periode yang ditutup. Sebelumnya tabel hanya berisi tombol Pilih dan aksi status hanya ada di bagian periode terpilih. Dialog konfirmasi kini menyebut nama periode, dan aksi tetap melewati validasi server yang sama.
+- Hapus periode: periode draf yang belum memiliki penugasan dapat dihapus dari tabel lewat dialog konfirmasi, beserta bobot dan indikator tematiknya, dan tercatat di log audit. Periode yang sudah memiliki penugasan, sudah dibuka, atau satu-satunya periode tidak dapat dihapus. Aksi API baru `period_delete`.
+- Kolom Progres per periode di tabel periode: penugasan terkirim dari total beserta persentasenya (admin OPD: pegawai dinilai di OPD-nya).
+- Peringatan di dialog konfirmasi saat membuka periode ketika periode lain masih aktif: kedua periode akan aktif bersamaan dan pegawai otomatis diarahkan ke periode aktif dengan tanggal mulai terbaru.
+- Tautan "Atur bobot & tematik" ke laman Metode di bagian periode terpilih selama periode berstatus draf.
+
+### Diubah
+- Tabel periode menggabungkan kolom Mulai dan Selesai menjadi rentang tanggal di bawah nama periode, sehingga tombol aksi muat sebaris. Di ponsel status tampil di bawah nama periode dan tombol aksi tetap terlihat tanpa menggeser tabel; deret tombol di bagian periode terpilih turun ke baris berikutnya agar halaman tidak melebar.
+
 ## [1.11.0] - 2026-10-09
 
 Tidak ada migrasi database.

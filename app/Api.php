@@ -65,8 +65,8 @@ final class Api
   if($action==='save_draft')return $this->saveDraft($body);
   if($action==='submit')return $this->submit($body);
   $this->admin();
-  if(in_array($action,['period_create','period_status','opd_save','settings_save','weights_save','thematic_save','admin_dashboard'],true))$this->superadmin();
-  return match($action){'assignment_list'=>$this->listAssignments($body),'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),'weights_save'=>$this->saveWeights($body),'thematic_save'=>$this->saveThematic($body),'admin_dashboard'=>$this->adminDashboard($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
+  if(in_array($action,['period_create','period_status','period_delete','opd_save','settings_save','weights_save','thematic_save','admin_dashboard'],true))$this->superadmin();
+  return match($action){'assignment_list'=>$this->listAssignments($body),'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'period_delete'=>$this->deletePeriod($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),'weights_save'=>$this->saveWeights($body),'thematic_save'=>$this->saveThematic($body),'admin_dashboard'=>$this->adminDashboard($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
  }
  private function login(array $body): array
  {
@@ -106,6 +106,8 @@ final class Api
   $user=$this->user;unset($user['auth_version'],$user['user_id']);
   $isAdmin=in_array($this->user['role'],['admin','admin_opd'],true);$scope=$this->scope();
   // Nama/jabatan/OPD atasan ikut dikirim agar atasan lintas OPD (mis. Bupati bagi kepala OPD) tetap tampil di lingkup admin OPD.
+  // Daftar periode untuk admin memuat jumlah penugasan dan yang terkirim per periode (admin OPD: pegawai dinilai di OPD-nya) untuk kolom progres.
+  if($isAdmin){$stats=[];foreach($this->all('SELECT a.period_id,COUNT(*) AS total,SUM(a.status=\'submitted\') AS submitted FROM assignments a'.($scope!==null?' JOIN employees s ON s.id=a.subject_id WHERE s.opd_id=?':'').' GROUP BY a.period_id',$scope!==null?[$scope]:[]) as $r)$stats[(int)$r['period_id']]=$r;foreach($periods as &$x){$x['assignments_total']=(int)($stats[(int)$x['id']]['total']??0);$x['assignments_submitted']=(int)($stats[(int)$x['id']]['submitted']??0);}unset($x);}
   $employees=$isAdmin?$this->all('SELECT e.*,u.role,o.name AS opd_name,o.code AS opd_code,s.name AS supervisor_name,s.position AS supervisor_position,s.opd_id AS supervisor_opd_id FROM employees e JOIN users u ON u.employee_id=e.id JOIN opd o ON o.id=e.opd_id LEFT JOIN employees s ON s.id=e.supervisor_id'.($scope!==null?' WHERE e.opd_id=?':'').' ORDER BY o.name,e.name',$scope!==null?[$scope]:[]):[];
   return ['user'=>$user,'settings'=>$this->settings(),'opds'=>$this->all('SELECT o.*,(SELECT COUNT(*) FROM employees e WHERE e.opd_id=o.id AND e.active=1) AS employee_count FROM opd o ORDER BY o.name'),'periods'=>$periods,'period'=>$p,'indicators'=>$ind,'tasks'=>$tasks,'result'=>$result,'csrf'=>$_SESSION['csrf'],'employees'=>$employees];
  }
@@ -268,6 +270,19 @@ final class Api
    }
    // Bobot periode tidak disentuh perubahan status; periode lama tanpa bobot mendapat bobot bawaan secara tertulis saat dibuka.
    $this->run('UPDATE periods SET status=?,published_at=?,weights=COALESCE(weights,?) WHERE id=?',[$status,$status==='published'?date('Y-m-d H:i:s'):null,json_encode($this->periodWeights($p),JSON_THROW_ON_ERROR),$id]);$this->audit('period_status_changed','period',$id,['from'=>$p['status'],'to'=>$status]);return ['ok'=>true];
+  });
+ }
+ // Hapus periode yang salah dibuat: hanya periode draf tanpa penugasan. Periode draf belum pernah menerima jawaban, dan periode yang sudah memiliki
+ // penugasan ditolak agar distribusi penilai tidak hilang tanpa sengaja. Indikator tematik periode ikut terhapus (ON DELETE CASCADE).
+ private function deletePeriod(array $b): array
+ {
+  $id=(int)($b['period_id']??0);
+  return $this->transaction(function()use($id){
+   $p=$this->period($id,true);if($p['status']!=='draft')throw new ApiError('Hanya periode berstatus draf yang dapat dihapus.',409);
+   $n=(int)$this->one('SELECT COUNT(*) AS c FROM assignments WHERE period_id=?',[$id])['c'];if($n)throw new ApiError('Periode '.$p['name'].' sudah memiliki '.$n.' penugasan. Hapus penugasannya terlebih dahulu sebelum menghapus periode.',409);
+   // Aplikasi memerlukan minimal satu periode (bootstrap menolak database tanpa periode).
+   if((int)$this->one('SELECT COUNT(*) AS c FROM periods')['c']<=1)throw new ApiError('Periode terakhir tidak dapat dihapus.',409);
+   $this->run('DELETE FROM periods WHERE id=?',[$id]);$this->audit('period_deleted','period',$id,['name'=>$p['name'],'theme'=>$p['theme']]);return ['ok'=>true];
   });
  }
  private function createAssignment(array $b): array
