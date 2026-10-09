@@ -49,7 +49,8 @@ final class Api
  private function period(int $id,bool $lock=false): array {$p=$this->one('SELECT * FROM periods WHERE id=?'.($lock?' FOR UPDATE':''),[$id]);if(!$p)throw new ApiError('Periode tidak ditemukan.',404);return $p;}
  // Status periode yang menentukan: selama berstatus open, penilaian dapat disimpan dan dikirim di luar rentang tanggal; administrator menghentikannya dengan menutup periode.
  private function openPeriod(array $period): void {if($period['status']!=='open')throw new ApiError('Periode tidak sedang menerima penilaian.',409);}
- private function indicators(): array {return $this->all('SELECT * FROM indicators ORDER BY id');}
+ // Indikator suatu periode: tujuh BerAKHLAK (period_id NULL) lalu indikator tematik periode itu, berurutan menurut kategori dan ID.
+ private function indicators(int $periodId): array {return $this->all('SELECT id,category,name,description FROM indicators WHERE period_id IS NULL OR period_id=? ORDER BY category,id',[$periodId]);}
  private function answersFor(int $id): array {$out=[];foreach($this->all('SELECT indicator_id,score FROM answers WHERE assignment_id=?',[$id]) as $a)$out[(int)$a['indicator_id']]=(int)$a['score'];return $out;}
  private function scoringRows(int $periodId,int $subjectId): array {$rows=$this->all('SELECT id,rater_role,status FROM assignments WHERE period_id=? AND subject_id=?',[$periodId,$subjectId]);foreach($rows as &$r)$r['answers']=$this->answersFor((int)$r['id']);return $rows;}
  public function handle(string $action,array $body): array
@@ -64,8 +65,8 @@ final class Api
   if($action==='save_draft')return $this->saveDraft($body);
   if($action==='submit')return $this->submit($body);
   $this->admin();
-  if(in_array($action,['period_create','period_status','opd_save','settings_save','weights_save'],true))$this->superadmin();
-  return match($action){'assignment_list'=>$this->listAssignments($body),'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),'weights_save'=>$this->saveWeights($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
+  if(in_array($action,['period_create','period_status','opd_save','settings_save','weights_save','thematic_save'],true))$this->superadmin();
+  return match($action){'assignment_list'=>$this->listAssignments($body),'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),'weights_save'=>$this->saveWeights($body),'thematic_save'=>$this->saveThematic($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
  }
  private function login(array $body): array
  {
@@ -97,7 +98,7 @@ final class Api
  {
   $periods=$this->all('SELECT * FROM periods ORDER BY start_date DESC,id DESC');if(!$periods)throw new ApiError('Belum ada periode. Jalankan instalasi awal.',409);
   if(!$periodId||!array_filter($periods,static fn($p)=>(int)$p['id']===$periodId)){$default=null;foreach(['open','closed','published'] as $status){foreach($periods as $p)if($p['status']===$status){$default=$p;break 2;}}$periodId=(int)($default??$periods[0])['id'];}
-  $p=$this->period($periodId);$ind=$this->indicators();$tasks=$this->all('SELECT id,period_id,subject_id,rater_role,status,version,feedback FROM assignments WHERE period_id=? AND rater_id=? ORDER BY id',[$periodId,$this->user['id']]);
+  $p=$this->period($periodId);$ind=$this->indicators($periodId);$tasks=$this->all('SELECT id,period_id,subject_id,rater_role,status,version,feedback FROM assignments WHERE period_id=? AND rater_id=? ORDER BY id',[$periodId,$this->user['id']]);
   foreach($tasks as &$t){$t['answers']=(object)$this->answersFor((int)$t['id']);$t['employee']=$this->one('SELECT e.id,e.name,e.nip,e.position,e.unit,e.grade,o.name AS opd_name FROM employees e JOIN opd o ON o.id=e.opd_id WHERE e.id=?',[$t['subject_id']]);}
   $p['weights']=$this->periodWeights($p);$periods=array_map(static function(array $x){unset($x['weights']);return $x;},$periods);
   $result=Scoring::calculate($this->scoringRows($periodId,(int)$this->user['id']),$ind,$p['weights']);$result['published']=$p['status']==='published';$result['visible']=$result['complete']&&($result['published']||$this->user['role']==='admin');
@@ -122,7 +123,7 @@ final class Api
    $row=$this->one('SELECT * FROM assignments WHERE id=? AND rater_id=? FOR UPDATE',[$id,$this->user['id']]);if(!$row)throw new ApiError('Penugasan tidak ditemukan.',404);
    if($row['status']==='submitted')throw new ApiError('Penilaian telah dikirim dan dikunci.',409);
    if((int)($b['version']??0)!==(int)$row['version'])throw new ApiError('Draf telah berubah dari sesi lain. Muat ulang halaman.',409);
-   if(!is_array($b['answers']??null))throw new ApiError('Jawaban tidak valid.');$answers=$b['answers'];Scoring::validateAnswers($answers,array_map('intval',array_column($this->indicators(),'id')),false);
+   if(!is_array($b['answers']??null))throw new ApiError('Jawaban tidak valid.');$answers=$b['answers'];Scoring::validateAnswers($answers,array_map('intval',array_column($this->indicators((int)$a['period_id']),'id')),false);
    $feedback=is_string($b['feedback']??null)?trim($b['feedback']):'';if(mb_strlen($feedback)>1000)throw new ApiError('Catatan maksimal 1.000 karakter.');
    $this->run('DELETE FROM answers WHERE assignment_id=?',[$id]);foreach($answers as $ind=>$score)$this->run('INSERT INTO answers(assignment_id,indicator_id,score) VALUES(?,?,?)',[$id,(int)$ind,$score]);
    $this->run("UPDATE assignments SET status='draft',feedback=?,version=version+1 WHERE id=?",[$feedback,$id]);$this->audit('draft_saved','assignment',$id,['answered'=>count($answers)]);return ['version'=>(int)$row['version']+1];
@@ -133,7 +134,7 @@ final class Api
   $periodId=(int)($b['period_id']??0);if(!is_array($b['ids']??null)||!count($b['ids'])||count($b['ids'])>500)throw new ApiError('Pilih 1 sampai 500 penilaian.');
   $ids=array_map('intval',$b['ids']);if(count($ids)!==count(array_unique($ids)))throw new ApiError('Penugasan duplikat.');sort($ids);
   return $this->transaction(function()use($periodId,$ids){
-   $this->openPeriod($this->period($periodId,true));$indIds=array_map('intval',array_column($this->indicators(),'id'));
+   $this->openPeriod($this->period($periodId,true));$indIds=array_map('intval',array_column($this->indicators($periodId),'id'));
    foreach($ids as $id){$a=$this->one('SELECT * FROM assignments WHERE id=? AND period_id=? AND rater_id=? FOR UPDATE',[$id,$periodId,$this->user['id']]);if(!$a)throw new ApiError('Penugasan tidak ditemukan atau bukan milik Anda.',403);if($a['status']!=='draft')throw new ApiError('Hanya draf yang dapat dikirim.',409);Scoring::validateAnswers($this->answersFor($id),$indIds,true);}
    foreach($ids as $id){$this->run("UPDATE assignments SET status='submitted',submitted_at=NOW(),version=version+1 WHERE id=?",[$id]);$this->audit('assessment_submitted','assignment',$id);}
    return ['count'=>count($ids)];
@@ -231,7 +232,11 @@ final class Api
   try{$p=Period::quarter((int)$b['year'],(int)$b['quarter']);}catch(DomainException $e){throw new ApiError($e->getMessage());}
   return $this->transaction(function()use($p){
    if($this->one('SELECT id FROM periods WHERE start_date=? AND end_date=? FOR UPDATE',[$p['start_date'],$p['end_date']]))throw new ApiError('Periode '.$p['name'].' sudah ada.',409);
-   $this->run('INSERT INTO periods(name,start_date,end_date,weights) VALUES(?,?,?,?)',[$p['name'],$p['start_date'],$p['end_date'],json_encode($this->latestWeights(),JSON_THROW_ON_ERROR)]);$id=(int)$this->db->lastInsertId();$this->audit('period_created','period',$id,['year'=>(int)substr($p['start_date'],0,4),'name'=>$p['name']]);return ['id'=>$id];
+   // Tema dan indikator tematik juga disalin dari periode terbaru, lalu diganti administrator selama periode masih draf.
+   $latest=$this->one('SELECT id,theme FROM periods ORDER BY start_date DESC,id DESC LIMIT 1');
+   $this->run('INSERT INTO periods(name,start_date,end_date,weights,theme) VALUES(?,?,?,?,?)',[$p['name'],$p['start_date'],$p['end_date'],json_encode($this->latestWeights(),JSON_THROW_ON_ERROR),$latest['theme']??null]);$id=(int)$this->db->lastInsertId();
+   if($latest)$this->run("INSERT INTO indicators(category,period_id,name,description) SELECT 'tematik',?,name,description FROM indicators WHERE period_id=? ORDER BY id",[$id,(int)$latest['id']]);
+   $this->audit('period_created','period',$id,['year'=>(int)substr($p['start_date'],0,4),'name'=>$p['name'],'theme'=>$latest['theme']??null]);return ['id'=>$id];
   });
  }
  private function periodStatus(array $b): array
@@ -243,7 +248,7 @@ final class Api
    if($status==='open'||$status==='published'){
     if(!$rows)throw new ApiError('Tambahkan penugasan sebelum membuka periode.');
     $subjects=[];foreach($rows as $row)$subjects[$row['subject_id']][]=$row;
-    foreach($subjects as $subject=>$assignments){Scoring::validateComposition($assignments);if($status==='published'){if(!Scoring::calculate($this->scoringRows($id,(int)$subject),$this->indicators())['complete'])throw new ApiError('Seluruh penugasan wajib selesai sebelum publikasi.',409);}}
+    foreach($subjects as $subject=>$assignments){Scoring::validateComposition($assignments);if($status==='published'){if(!Scoring::calculate($this->scoringRows($id,(int)$subject),$this->indicators($id))['complete'])throw new ApiError('Seluruh penugasan wajib selesai sebelum publikasi.',409);}}
    }
    // Bobot periode tidak disentuh perubahan status; periode lama tanpa bobot mendapat bobot bawaan secara tertulis saat dibuka.
    $this->run('UPDATE periods SET status=?,published_at=?,weights=COALESCE(weights,?) WHERE id=?',[$status,$status==='published'?date('Y-m-d H:i:s'):null,json_encode($this->periodWeights($p),JSON_THROW_ON_ERROR),$id]);$this->audit('period_status_changed','period',$id,['from'=>$p['status'],'to'=>$status]);return ['ok'=>true];
@@ -283,6 +288,28 @@ final class Api
    $p=$this->period($periodId,true);if($p['status']!=='draft')throw new ApiError('Bobot '.$p['name'].' terkunci sejak periode dibuka.',409);
    $old=$this->periodWeights($p);$this->run('UPDATE periods SET weights=? WHERE id=?',[json_encode($weights,JSON_THROW_ON_ERROR),$periodId]);
    $this->audit('weights_saved','period',$periodId,['from'=>$old,'to'=>$weights]);return ['weights'=>$weights];
+  });
+ }
+ // Indikator tematik: tepat lima butir bertema untuk periode terpilih, menggantikan seluruh butir sebelumnya. Hanya selama draf, karena periode draf belum
+ // pernah menerima jawaban; sejak dibuka terkunci seperti bobot agar instrumen tidak berubah selama penilaian berjalan.
+ private function saveThematic(array $b): array
+ {
+  $periodId=(int)($b['period_id']??0);$theme=trim(is_string($b['theme']??null)?$b['theme']:'');if($theme===''||mb_strlen($theme)>120)throw new ApiError('Tema wajib diisi dan maksimal 120 karakter.');
+  $items=$b['indicators']??null;if(!is_array($items)||!array_is_list($items)||count($items)!==5)throw new ApiError('Indikator tematik harus tepat 5 butir.');
+  $rows=[];foreach($items as $i=>$item){
+   $name=trim(is_string($item['name']??null)?$item['name']:'');$description=trim(is_string($item['description']??null)?$item['description']:'');
+   if($name===''||mb_strlen($name)>80)throw new ApiError('Nama indikator tematik '.($i+1).' wajib diisi dan maksimal 80 karakter.');
+   if($description===''||mb_strlen($description)>600)throw new ApiError('Uraian indikator tematik '.($i+1).' wajib diisi dan maksimal 600 karakter.');
+   $rows[]=[$name,$description];
+  }
+  if(count(array_unique(array_map(static fn(array $r)=>mb_strtolower($r[0]),$rows)))!==count($rows))throw new ApiError('Nama indikator tematik tidak boleh sama.');
+  return $this->transaction(function()use($periodId,$theme,$rows){
+   $p=$this->period($periodId,true);if($p['status']!=='draft')throw new ApiError('Indikator tematik '.$p['name'].' terkunci sejak periode dibuka.',409);
+   $old=array_column($this->all('SELECT name FROM indicators WHERE period_id=? ORDER BY id',[$periodId]),'name');
+   $this->run('DELETE FROM indicators WHERE period_id=?',[$periodId]);
+   foreach($rows as [$name,$description])$this->run("INSERT INTO indicators(category,period_id,name,description) VALUES('tematik',?,?,?)",[$periodId,$name,$description]);
+   $this->run('UPDATE periods SET theme=? WHERE id=?',[$theme,$periodId]);
+   $this->audit('thematic_saved','period',$periodId,['from'=>['theme'=>$p['theme'],'names'=>$old],'to'=>['theme'=>$theme,'names'=>array_column($rows,0)]]);return ['theme'=>$theme,'count'=>count($rows)];
   });
  }
 }

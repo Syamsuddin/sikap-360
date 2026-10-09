@@ -38,4 +38,15 @@ rejects(static fn()=>Scoring::validateAnswers([8=>4],range(1,7),false),'Indikato
 rejects(static fn()=>Scoring::validateAnswers([1=>4],range(1,7),true),'Pengiriman parsial ditolak');
 check(Scoring::calculate(array_map(static fn($r)=>array_replace($r,['answers'=>array_fill_keys(range(1,7),1)]),$rows),$indicators)['score']===20.0,'Skor minimum konversi adalah 20');
 check(Scoring::calculate(array_map(static fn($r)=>array_replace($r,['answers'=>array_fill_keys(range(1,7),5)]),$rows),$indicators)['score']===100.0,'Skor maksimum konversi adalah 100');
+// Indikator tematik: nilai akhir = rata-rata seluruh indikator periode (7 BerAKHLAK + 5 tematik, bobot setara); categories merinci rata-rata tiap kategori.
+$twelve=[...array_map(static fn($id)=>['id'=>$id,'category'=>'berakhlak','name'=>'Indikator '.$id],range(1,7)),...array_map(static fn($id)=>['id'=>$id,'category'=>'tematik','name'=>'Tematik '.$id],range(101,105))];
+$mix=static fn($role,$b,$t)=>['rater_role'=>$role,'status'=>'submitted','answers'=>array_fill_keys(range(1,7),$b)+array_fill_keys(range(101,105),$t)];
+$r=Scoring::calculate([$mix('atasan',5,3),$mix('rekan',4,4)],$twelve);
+check($r['score']===82.5,'Tematik: atasan 5/3, rekan 4/4, bobot 75/25 → (7×95 + 5×65) / 12 = 82,5');
+check($r['categories']===[['category'=>'berakhlak','count'=>7,'score'=>95.0],['category'=>'tematik','count'=>5,'score'=>65.0]],'Rincian kategori: BerAKHLAK 95, tematik 65');
+check(count($r['dimensions'])===12&&$r['dimensions'][0]['category']==='berakhlak'&&$r['dimensions'][7]['category']==='tematik'&&$r['dimensions'][7]['score']===65.0,'Dimensi memuat 12 indikator beserta kategorinya');
+check(!Scoring::calculate([$make('atasan',5),$make('rekan',4)],$twelve)['complete'],'Penilaian tujuh jawaban tidak lengkap pada periode bertematik');
+rejects(static fn()=>Scoring::validateAnswers(array_fill_keys(range(1,7),4),[...range(1,7),...range(101,105)],true),'Pengiriman tanpa jawaban tematik ditolak');
+try{Scoring::validateAnswers([1=>4],[...range(1,7),...range(101,105)],true);check(false,'Pesan kelengkapan');}catch(DomainException $e){check($e->getMessage()==='Lengkapi seluruh 12 indikator sebelum mengirim.','Pesan kelengkapan menyebut jumlah indikator periode');}
+check(Scoring::calculate($rows2,$indicators)['categories']===[['category'=>'berakhlak','count'=>7,'score'=>95.0]],'Indikator tanpa kategori (periode lama) dihitung sebagai BerAKHLAK');
 echo "Total: $passed pengujian lulus.\n";

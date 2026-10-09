@@ -406,8 +406,12 @@ def apply(rows, admin_email, overwrite_assessments):
     if existing and not overwrite_assessments:
         raise SystemExit(f'Database berisi {existing} penugasan penilaian. Tambahkan --timpa-penilaian bila memang ingin menghapusnya.')
     cur.execute('SET FOREIGN_KEY_CHECKS=0')
-    for t in ['answers', 'assignments', 'audit_logs', 'login_attempts', 'users', 'employees', 'opd', 'periods']:
+    for t in ['answers', 'assignments', 'audit_logs', 'login_attempts', 'users', 'employees', 'opd']:
         cur.execute(f'TRUNCATE TABLE {t}')
+    # Indikator tematik melekat pada periode. TRUNCATE melewati ON DELETE CASCADE dan mengulang ID periode dari 1,
+    # jadi butir tematik dihapus lebih dulu agar tidak menempel pada periode baru yang memakai ID lama.
+    cur.execute('DELETE FROM indicators WHERE period_id IS NOT NULL')
+    cur.execute('TRUNCATE TABLE periods')
     cur.execute('SET FOREIGN_KEY_CHECKS=1')
     try:
         cur.execute("INSERT INTO settings(name,value) VALUES('kabupaten_name','Hulu Sungai Selatan') "

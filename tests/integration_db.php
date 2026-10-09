@@ -51,6 +51,17 @@ $tx(static function () use ($pdo, $e1, $e2, $pdoRejects) {
     $ins->execute([$pid, $e1, $e2, 'rekan']);
     try { $pdo->prepare('DELETE FROM periods WHERE id=?')->execute([$pid]); check(false, 'periods RESTRICT'); } catch (PDOException $e) { check($e->getCode() === '23000', 'periods RESTRICT: tidak bisa dihapus selama ada penugasan'); }
 });
+// indikator tematik: melekat pada periode (CASCADE saat periode tanpa penugasan dihapus), ID melewati batas TINYINT, kategori ENUM
+$tx(static function () use ($pdo) {
+    $pdo->prepare('INSERT INTO periods(name,start_date,end_date) VALUES(?,?,?)')->execute(['QA tematik', '2027-01-01', '2027-03-31']);
+    $pid = (int) $pdo->lastInsertId();
+    $pdo->prepare("INSERT INTO indicators(id,category,period_id,name,description) VALUES(300,'tematik',?,'Tematik QA','Uraian')")->execute([$pid]);
+    check((int) $pdo->query('SELECT id FROM indicators WHERE id=300')->fetchColumn() === 300, 'indicators.id SMALLINT menampung ID di atas 255');
+    try { $pdo->prepare("INSERT INTO indicators(category,period_id,name,description) VALUES('khusus',?,'x','y')")->execute([$pid]); check(false, 'indicators.category ENUM'); } catch (PDOException $e) { check(true, 'indicators.category ENUM menolak kategori asing [' . $e->getCode() . ']'); }
+    try { $pdo->prepare("INSERT INTO indicators(category,period_id,name,description) VALUES('tematik',999999,'x','y')")->execute(); check(false, 'indicators FK periode'); } catch (PDOException $e) { check($e->getCode() === '23000', 'indicators.period_id FK menolak periode fiktif'); }
+    $pdo->prepare('DELETE FROM periods WHERE id=?')->execute([$pid]);
+    check((int) $pdo->query("SELECT COUNT(*) FROM indicators WHERE period_id=$pid")->fetchColumn() === 0, 'indikator tematik ikut terhapus (CASCADE) bersama periodenya');
+});
 // utf8mb4 round trip + panjang kolom
 $tx(static function () use ($pdo, $e1) {
     $pdo->prepare('UPDATE employees SET name=? WHERE id=?')->execute(['Dr. Ñoño 🇮🇩 — “tes”', $e1]);
@@ -73,5 +84,5 @@ $mode = (string) $pdo->query('SELECT @@sql_mode')->fetchColumn();
 check(str_contains($mode, 'STRICT_TRANS_TABLES'), 'sql_mode STRICT_TRANS_TABLES aktif (' . $mode . ')');
 // schema.sql idempoten (CREATE IF NOT EXISTS + INSERT IGNORE)
 $pdo->exec(file_get_contents(dirname(__DIR__) . '/database/schema.sql'));
-check((int) $pdo->query('SELECT COUNT(*) FROM indicators')->fetchColumn() === 7, 'schema.sql idempoten: indikator tetap 7');
+check((int) $pdo->query('SELECT COUNT(*) FROM indicators WHERE period_id IS NULL')->fetchColumn() === 7, 'schema.sql idempoten: indikator BerAKHLAK tetap 7');
 qa_summary();

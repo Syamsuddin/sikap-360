@@ -8,8 +8,8 @@ Test hanya memakai baris DISAHKAN. Baris tanpa sumber = [PERLU KEPUTUSAN].
 | R-01 | Bobot komposisi atasan+rekan+bawahan = 60/25/15 | 3 kelompok | 60,25,15 | tests/scoring.php, README | DISAHKAN |
 | R-02 | Bobot atasan+rekan = 75/25; atasan+bawahan = 85/15 | 2 kelompok | 75/25; 85/15 | tests/scoring.php | DISAHKAN |
 | R-03 | Tepat 1 atasan; rekan/bawahan (jika ada) minimal 1 orang | komposisi | DomainException | Scoring::validateComposition, VALIDASI #13 | DISAHKAN |
-| R-04 | Skor 1–5 bilangan bulat; indikator harus dikenal (1–7) | 0,6,4.5,id 8 | HTTP 422, data tak berubah | VALIDASI #6 | DISAHKAN |
-| R-05 | Submit wajib 7 jawaban lengkap | 6 jawaban | seluruh batch ditolak | VALIDASI #7, #11 | DISAHKAN |
+| R-04 | Skor 1–5 bilangan bulat; indikator harus milik periode tugas (7 BerAKHLAK + tematik periode itu) | 0,6,4.5,id asing, id tematik periode lain | HTTP 422, data tak berubah | VALIDASI #6, tests/thematic_flows.php T19 | DISAHKAN |
+| R-05 | Submit wajib menjawab seluruh indikator periode (7, atau 12 bila periode bertematik) | 6 jawaban; 7 jawaban di periode bertematik | seluruh batch ditolak (422) | VALIDASI #7, #11, thematic_flows T21 | DISAHKAN |
 | R-06 | Konversi skor: mean tertimbang ×20, rentang 20–100 | semua 1 / semua 5 | 20 / 100 | tests/scoring.php | DISAHKAN |
 | R-07 | ASN tidak boleh employee_save/period_status/assignment_create/… | role asn | HTTP 403 | VALIDASI #2, API.md | DISAHKAN |
 | R-08 | save_draft ID tugas orang lain ditolak, data pemilik tak berubah | id milik user lain | 404 (kode) / "ditolak" (spec) | VALIDASI #3, Api.php:77 | DISAHKAN |
@@ -30,3 +30,8 @@ Test hanya memakai baris DISAHKAN. Baris tanpa sumber = [PERLU KEPUTUSAN].
 | R-23 | Pegawai nonaktif (active=0) tidak bisa login dan sesi aktifnya putus | active=0 | 401 | Api::auth, Api::login | DISAHKAN |
 | R-24 | Publikasi periode saat ada subject dengan komposisi tak valid tapi semua submitted | — | ? | — | [PERLU KEPUTUSAN] |
 | R-25 | Periode default bootstrap: open → closed → published → draft (start_date terbaru) | tanpa period_id | periode open | docs/API.md | DISAHKAN |
+| R-26 | Nilai akhir = rata-rata seluruh indikator periode, bobot setara; categories = rata-rata tiap kategori (rincian) | atasan 5/3, rekan 4/4, 75/25 | 82,5; BerAKHLAK 95; tematik 65 | keputusan pengguna 09-10-2026, tests/scoring.php, thematic_flows T23–T24 | DISAHKAN |
+| R-27 | thematic_save: hanya admin kabupaten; tepat 5 butir, tema 1–120, nama 1–80 unik, uraian 1–600 | asn/admin_opd; 4/6 butir; kosong/terlalu panjang/ganda | 403; 422, data tak berubah | Api::saveThematic, thematic_flows T3–T6 | DISAHKAN |
+| R-28 | Tematik hanya dapat diubah selama periode draf; menggantikan seluruh butir lama | periode open/closed/published | HTTP 409 | Api::saveThematic, thematic_flows T10, T13, T14, T18 | DISAHKAN |
+| R-29 | period_create menyalin tema dan 5 butir tematik periode terbaru dengan ID baru | periode terbaru bertematik | salinan independen | Api::createPeriod, thematic_flows T15–T16 | DISAHKAN |
+| R-30 | Penilaian terkirim tanpa jawaban tematik pada periode bertematik memblokir publikasi | 7 jawaban terkirim | HTTP 409 | Scoring::calculate, thematic_flows T25 | DISAHKAN |

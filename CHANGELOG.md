@@ -4,6 +4,22 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [Belum dirilis]
+
+Migrasi database: jalankan `database/upgrade-1.9-tematik.sql` sebelum memasang kode versi ini. Migrasi menambah kolom `indicators.category`, `indicators.period_id`, dan `periods.theme`, serta memperlebar ID indikator menjadi SMALLINT. Tujuh indikator yang ada menjadi kategori BerAKHLAK. Periode yang sudah ada tidak memiliki indikator tematik, sehingga tetap dinilai dengan tujuh indikator. Untuk memasang indikator tematik Triwulan IV 2026, jalankan juga `database/tematik-triwulan-iv-2026.sql` setelah migrasi.
+
+### Ditambahkan
+- Lima indikator tematik per periode, di samping tujuh indikator BerAKHLAK. Tema dan butirnya berganti tiap triwulan. Administrator kabupaten menetapkannya di laman Metode selama periode berstatus draf: tema triwulan, lalu nama dan uraian perilaku tiap butir. Sejak periode dibuka, indikator tematik terkunci seperti bobot. Periode baru menyalin tema dan butir tematik periode terbaru untuk diganti sebelum dibuka. Setiap perubahan tercatat di log audit.
+- Indikator tematik Triwulan IV 2026 bertema Pemberantasan Korupsi: Menolak Gratifikasi dan Pungutan Liar; Mengelola Konflik Kepentingan; Jujur dalam Anggaran, Aset, dan Laporan; Transparan dan Taat Prosedur; serta Berani Menolak dan Melaporkan Penyimpangan. Kelima butir dirumuskan sebagai perilaku yang dapat diamati atasan, rekan, dan bawahan pada semua jenjang, dari pelaksana sampai kepala OPD dan Sekretaris Daerah.
+- Formulir penilaian mengelompokkan pertanyaan menjadi "Indikator BerAKHLAK" dan "Indikator Tematik · tema", bernomor urut, dengan progres dan daftar periksa yang mengikuti jumlah indikator periode.
+- Halaman hasil menampilkan grafik batang per kelompok beserta rata-rata tiap kategori.
+
+### Diubah
+- Nilai akhir adalah rata-rata seluruh indikator periode dengan bobot setara. Pada periode bertematik, nilai akhir adalah rata-rata 12 indikator, sehingga tematik menyumbang 5/12 nilai. Periode tanpa indikator tematik tetap memakai rata-rata tujuh indikator.
+- Pengiriman penilaian dan publikasi periode mensyaratkan jawaban untuk seluruh indikator periode. Pesan kelengkapan kini menyebut jumlahnya, misalnya "Lengkapi seluruh 12 indikator sebelum mengirim."
+- Kartu "Nilai saya" tetap menampilkan jaring laba-laba tujuh indikator BerAKHLAK, ditambah baris nilai tematik. Kartu "Nilai yang membentuk ASN" di Dashboard menyebut tema triwulan.
+- Impor SIASN menghapus indikator tematik bersama periodenya, agar butir lama tidak menempel pada periode baru yang memakai ID yang sama setelah tabel periode dikosongkan.
+
 ## [1.8.1] - 2026-09-30
 
 Tidak ada migrasi database.

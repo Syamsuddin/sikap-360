@@ -43,8 +43,10 @@ final class Scoring
   foreach ($answers as $id=>$score) {
    if (!is_int($id) || !in_array($id, $indicatorIds, true) || !is_int($score) || $score < 1 || $score > 5) throw new DomainException('Indikator atau nilai tidak valid. Gunakan bilangan bulat 1 sampai 5.');
   }
-  if ($complete && (count($answers) !== count($indicatorIds) || array_diff($indicatorIds, array_map('intval', array_keys($answers))))) throw new DomainException('Lengkapi seluruh tujuh indikator sebelum mengirim.');
+  if ($complete && (count($answers) !== count($indicatorIds) || array_diff($indicatorIds, array_map('intval', array_keys($answers))))) throw new DomainException('Lengkapi seluruh ' . count($indicatorIds) . ' indikator sebelum mengirim.');
  }
+ // Indikator periode: tujuh BerAKHLAK ditambah indikator tematik periode itu (bila ada). Nilai akhir = rata-rata seluruh indikator dengan bobot setara;
+ // categories memuat rata-rata tiap kategori sebagai rincian, bukan bagian rumus nilai akhir.
  public static function calculate(array $rows, array $indicators, array $table = self::DEFAULT_WEIGHTS): array
  {
   $weights = self::weights(array_column($rows, 'rater_role'), $table);
@@ -61,7 +63,7 @@ final class Scoring
   foreach($rows as $row) if($row['status']==='submitted') {
    try { self::validateAnswers($row['answers'], $ids, true); } catch(DomainException) { $complete=false; }
   }
-  $dimensions=[]; $sum=0.0;
+  $dimensions=[]; $sum=0.0; $byCategory=[];
   if($complete) foreach($indicators as $indicator) {
    $value=0.0;
    foreach($weights as $role=>$weight) {
@@ -70,8 +72,10 @@ final class Scoring
     $value += $mean*$weight/100;
    }
    $sum += $value*20;
-   $dimensions[]=['id'=>(int)$indicator['id'],'name'=>$indicator['name'],'score'=>round($value*20,2)];
+   $category=$indicator['category']??'berakhlak';$byCategory[$category][]=$value*20;
+   $dimensions[]=['id'=>(int)$indicator['id'],'category'=>$category,'name'=>$indicator['name'],'score'=>round($value*20,2)];
   }
-  return ['received'=>$received,'expected'=>count($rows),'complete'=>$complete,'weights'=>$weights,'groups'=>$groups,'score'=>$complete?round($sum/count($indicators),2):null,'dimensions'=>$dimensions];
+  $categories=[];foreach($byCategory as $category=>$values)$categories[]=['category'=>$category,'count'=>count($values),'score'=>round(array_sum($values)/count($values),2)];
+  return ['received'=>$received,'expected'=>count($rows),'complete'=>$complete,'weights'=>$weights,'groups'=>$groups,'score'=>$complete?round($sum/count($indicators),2):null,'dimensions'=>$dimensions,'categories'=>$categories];
  }
 }

@@ -1,12 +1,22 @@
 export const indicators = [
-{id:1,name:'Berorientasi Pelayanan',description:'Memberikan pelayanan prima, ramah, cekatan, solutif, dapat diandalkan, serta melakukan perbaikan secara berkelanjutan.'},
-{id:2,name:'Akuntabel',description:'Melaksanakan tugas dengan jujur, bertanggung jawab, cermat, disiplin, dan berintegritas. Menggunakan kewenangan serta sumber daya secara bertanggung jawab.'},
-{id:3,name:'Kompeten',description:'Terus belajar dan mengembangkan kemampuan, membantu orang lain belajar, serta melaksanakan tugas dengan kualitas terbaik.'},
-{id:4,name:'Harmonis',description:'Menghargai perbedaan, peduli dan membantu orang lain, serta membangun lingkungan kerja yang kondusif.'},
-{id:5,name:'Loyal',description:'Memegang teguh Pancasila dan UUD 1945, mengutamakan kepentingan bangsa dan negara, serta menjaga nama baik ASN dan instansi.'},
-{id:6,name:'Adaptif',description:'Berinovasi, menyesuaikan diri menghadapi perubahan, dan bertindak proaktif dalam menyelesaikan pekerjaan.'},
-{id:7,name:'Kolaboratif',description:'Memberi kesempatan berbagai pihak untuk berkontribusi, terbuka dalam bekerja sama, serta menggerakkan sumber daya untuk tujuan bersama.'}
+{id:1,category:'berakhlak',name:'Berorientasi Pelayanan',description:'Memberikan pelayanan prima, ramah, cekatan, solutif, dapat diandalkan, serta melakukan perbaikan secara berkelanjutan.'},
+{id:2,category:'berakhlak',name:'Akuntabel',description:'Melaksanakan tugas dengan jujur, bertanggung jawab, cermat, disiplin, dan berintegritas. Menggunakan kewenangan serta sumber daya secara bertanggung jawab.'},
+{id:3,category:'berakhlak',name:'Kompeten',description:'Terus belajar dan mengembangkan kemampuan, membantu orang lain belajar, serta melaksanakan tugas dengan kualitas terbaik.'},
+{id:4,category:'berakhlak',name:'Harmonis',description:'Menghargai perbedaan, peduli dan membantu orang lain, serta membangun lingkungan kerja yang kondusif.'},
+{id:5,category:'berakhlak',name:'Loyal',description:'Memegang teguh Pancasila dan UUD 1945, mengutamakan kepentingan bangsa dan negara, serta menjaga nama baik ASN dan instansi.'},
+{id:6,category:'berakhlak',name:'Adaptif',description:'Berinovasi, menyesuaikan diri menghadapi perubahan, dan bertindak proaktif dalam menyelesaikan pekerjaan.'},
+{id:7,category:'berakhlak',name:'Kolaboratif',description:'Memberi kesempatan berbagai pihak untuk berkontribusi, terbuka dalam bekerja sama, serta menggerakkan sumber daya untuk tujuan bersama.'}
 ];
+// Indikator tematik contoh (cermin database/tematik-triwulan-iv-2026.sql), dipasang pada periode berjalan demo. Tiap periode menyimpan tema dan butirnya sendiri.
+const ANTIKORUPSI=[
+{name:'Menolak Gratifikasi dan Pungutan Liar',description:'Menolak pemberian dalam bentuk apa pun (uang, barang, fasilitas, jamuan, atau titipan) yang berkaitan dengan jabatan atau tugasnya, dan melaporkannya sesuai ketentuan bila tidak dapat ditolak. Tidak meminta atau menerima imbalan di luar ketentuan atas layanan dan pekerjaan yang menjadi kewajibannya.'},
+{name:'Mengelola Konflik Kepentingan',description:'Memisahkan kepentingan pribadi, keluarga, atau kelompok dari pekerjaan dinas. Menyampaikan kepada atasan bila memiliki kepentingan dalam suatu urusan, dan tidak ikut memutuskan, menilai, atau memproses urusan tersebut.'},
+{name:'Jujur dalam Anggaran, Aset, dan Laporan',description:'Menggunakan uang, barang, kendaraan, dan fasilitas kantor hanya untuk keperluan dinas. Menyusun atau menandatangani laporan, pertanggungjawaban keuangan, dan daftar hadir sesuai keadaan sebenarnya, tanpa kegiatan, perjalanan, atau harga yang direkayasa.'},
+{name:'Transparan dan Taat Prosedur',description:'Menjalankan pekerjaan, layanan, dan keputusan sesuai prosedur dan persyaratan yang berlaku, serta terbuka terhadap pertanyaan dan pemeriksaan. Tidak mempercepat, memperlambat, atau mengistimewakan suatu urusan karena hubungan pribadi atau imbalan.'},
+{name:'Berani Menolak dan Melaporkan Penyimpangan',description:'Menolak ajakan, tekanan, atau perintah yang melanggar aturan, termasuk dari atasan. Menegur atau melaporkan dugaan korupsi melalui saluran resmi, menindaklanjuti laporan yang diterima sesuai kewenangannya, serta melindungi, bukan menekan atau mengucilkan, rekan yang melapor.'}
+];
+// Indikator periode (cermin Api::indicators): tujuh BerAKHLAK lalu butir tematik periode itu.
+const indicatorsFor=p=>[...indicators,...(p?.thematic??[]).map(x=>({...x,category:'tematik'}))];
 export const roleLabels={atasan:'Atasan',rekan:'Rekan sejawat',bawahan:'Bawahan'};
 export const targetLabels={atasan:'Bawahan',rekan:'Rekan sejawat',bawahan:'Atasan'};
 // Bobot bawaan per komposisi (cermin Scoring::DEFAULT_WEIGHTS); tiap periode menyimpan bobotnya sendiri di p.weights.
@@ -80,7 +90,7 @@ const SPEC=[
 function pairsFromStructure(members,boss,unit){const kids={};for(const n of members)if(boss[n])(kids[boss[n]]??=[]).push(n);const out=[];for(const n of members){if(!boss[n])continue;const subs=kids[n]??[],peers=subs.length?kids[boss[n]].filter(x=>x!==n&&kids[x]):members.filter(x=>unit[x]===unit[n]&&x!==n&&!kids[x]);const rows=[[n,boss[n],'atasan']];peers.forEach(r=>rows.push([n,r,'rekan']));subs.forEach(r=>rows.push([n,r,'bawahan']));if(rows.length>1)out.push(...rows);}return out;}
 function seed(){
  const employees=SPEC.map(([n,name,position,unit,grade,boss,role,code])=>{const o=OPDS.find(x=>x.code===code);return{id:n,name,nip:'DEMO-'+String(n).padStart(4,'0'),position,opd_id:o.id,opd_name:o.name,opd_code:o.code,unit,grade,email:`pegawai${n}@example.test`,supervisor_id:boss,active:1,role};});
- const periods=[{id:1,name:'Triwulan III 2026',start_date:'2026-07-01',end_date:'2026-09-30',status:'open'},{id:2,name:'Triwulan II 2026',start_date:'2026-04-01',end_date:'2026-06-30',status:'published'}];
+ const periods=[{id:1,name:'Triwulan III 2026',start_date:'2026-07-01',end_date:'2026-09-30',status:'open',theme:'Pemberantasan Korupsi',thematic:ANTIKORUPSI.map((x,i)=>({id:101+i,...x}))},{id:2,name:'Triwulan II 2026',start_date:'2026-04-01',end_date:'2026-06-30',status:'published'}];
  const assignments=[];let id=1;
  const bossMap=Object.fromEntries(SPEC.map(r=>[r[0],r[5]])),boss=n=>bossMap[n],pairs=[];
  for(let subject=1;subject<=13;subject++)for(let rater=1;rater<=14;rater++){if(subject!==rater)pairs.push([subject,rater,rater===boss(subject)?'atasan':rater!==14&&boss(rater)===subject?'bawahan':'rekan']);}
@@ -90,12 +100,12 @@ function seed(){
   if(p.id===1&&rater===1)status=subject>=10?'submitted':subject===3||subject===4?'draft':'pending';
   else if(p.id===1&&subject===1&&(rater<=8||rater===14))status='submitted';
   else if(p.id===1&&subject>14)status=rater%3===0?'submitted':rater%3===1?'draft':'pending';
-  const count=status==='submitted'?7:status==='draft'?3:0;
-  assignments.push({id:id++,period_id:p.id,subject_id:subject,rater_id:rater,rater_role:role,status,answers:Object.fromEntries(indicators.slice(0,count).map(x=>[x.id,(x.id+rater)%3===0?5:4])),feedback:'',version:1});
+  const list=indicatorsFor(p),count=status==='submitted'?list.length:status==='draft'?3:0;
+  assignments.push({id:id++,period_id:p.id,subject_id:subject,rater_id:rater,rater_role:role,status,answers:Object.fromEntries(list.slice(0,count).map(x=>[x.id,(x.id+rater)%3===0?5:4])),feedback:'',version:1});
  }
  return {employees,periods,assignments,opds:OPDS.map(o=>({...o})),settings:{kabupaten_name:'Hulu Sungai Selatan'},admin:false};
 }
-const KEY='sikap360_demo_v7';
+const KEY='sikap360_demo_v8';
 function load(){try{const d=JSON.parse(localStorage.getItem(KEY));if(d?.employees?.length&&d?.periods?.length&&Array.isArray(d.assignments)&&Array.isArray(d.opds))return d;}catch{}return seed();}
 let db=load();
 function persist(){localStorage.setItem(KEY,JSON.stringify(db));}
@@ -107,9 +117,10 @@ function result(periodId,subjectId=1){
  const weights=weightsFor(a.map(x=>x.rater_role),periodWeights(period));const complete=a.length>0&&received===a.length&&!!weights;const published=period?.status==='published';
  const groups=Object.entries(weights??{}).map(([role,weight])=>({role,weight,total:a.filter(x=>x.rater_role===role).length,received:a.filter(x=>x.rater_role===role&&x.status==='submitted').length}));
  const visible=complete&&(published||db.admin);
- let dimensions=[],score=null;const rawValues=[];
- if(visible){dimensions=indicators.map(ind=>{let value=0;for(const [role,weight]of Object.entries(weights)){const rows=a.filter(x=>x.rater_role===role);value+=rows.reduce((s,r)=>s+Number(r.answers[ind.id]),0)/rows.length*weight/100;}rawValues.push(value*20);return{id:ind.id,name:ind.name,score:Math.round(value*20*100)/100};});score=rawValues.reduce((s,x)=>s+x,0)/7;}
- return{received,expected:a.length,complete,published,visible,weights,groups,score:score===null?null:Math.round(score*100)/100,dimensions};
+ let dimensions=[],score=null,categories=[];const rawValues=[],list=indicatorsFor(period);
+ if(visible){dimensions=list.map(ind=>{let value=0;for(const [role,weight]of Object.entries(weights)){const rows=a.filter(x=>x.rater_role===role);value+=rows.reduce((s,r)=>s+Number(r.answers[ind.id]),0)/rows.length*weight/100;}rawValues.push(value*20);return{id:ind.id,category:ind.category,name:ind.name,score:Math.round(value*20*100)/100};});score=rawValues.reduce((s,x)=>s+x,0)/list.length;
+  categories=['berakhlak','tematik'].map(c=>{const v=rawValues.filter((_,i)=>list[i].category===c);return v.length?{category:c,count:v.length,score:Math.round(v.reduce((s,x)=>s+x,0)/v.length*100)/100}:null;}).filter(Boolean);}
+ return{received,expected:a.length,complete,published,visible,weights,groups,score:score===null?null:Math.round(score*100)/100,dimensions,categories};
 }
 function supervisorOk(employeeId,supervisorId){if(supervisorId===employeeId)return false;const s=db.employees.find(x=>x.id===supervisorId);if(!s||!s.active)return false;for(let cur=s,i=0;cur&&i<200;i++){if(cur.id===employeeId)return false;cur=db.employees.find(x=>x.id===cur.supervisor_id);}return true;}
 export async function demoRequest(action,body={}){
@@ -117,7 +128,7 @@ export async function demoRequest(action,body={}){
  const periodId=Number(body.period_id)||1;
  const opdOf=id=>db.opds.find(o=>o.id===Number(id)),withOpd=e=>({...e,opd_name:opdOf(e.opd_id)?.name??'',opd_code:opdOf(e.opd_id)?.code??''});
  if(action==='info')return{kabupaten_name:db.settings.kabupaten_name};
- if(action==='bootstrap')return{user:{...withOpd(db.employees[0]),role:db.admin?'admin':'asn'},settings:db.settings,opds:db.opds.map(o=>({...o,employee_count:db.employees.filter(e=>e.opd_id===o.id&&e.active).length})),periods:db.periods,period:(p=>({...p,weights:periodWeights(p)}))(db.periods.find(x=>x.id===periodId)??db.periods[0]),indicators,tasks:db.assignments.filter(x=>x.period_id===periodId&&x.rater_id===1).map(x=>({...x,employee:withOpd(db.employees.find(e=>e.id===x.subject_id))})),result:result(periodId),employees:db.admin?db.employees.map(withOpd):[],csrf:'demo'};
+ if(action==='bootstrap')return{user:{...withOpd(db.employees[0]),role:db.admin?'admin':'asn'},settings:db.settings,opds:db.opds.map(o=>({...o,employee_count:db.employees.filter(e=>e.opd_id===o.id&&e.active).length})),periods:db.periods,period:(p=>({...p,weights:periodWeights(p)}))(db.periods.find(x=>x.id===periodId)??db.periods[0]),indicators:indicatorsFor(db.periods.find(x=>x.id===periodId)??db.periods[0]),tasks:db.assignments.filter(x=>x.period_id===periodId&&x.rater_id===1).map(x=>({...x,employee:withOpd(db.employees.find(e=>e.id===x.subject_id))})),result:result(periodId),employees:db.admin?db.employees.map(withOpd):[],csrf:'demo'};
  if(action==='assignment_list'){const emp=id=>db.employees.find(e=>e.id===Number(id)),opd=Number(body.opd_id)||null,base=db.assignments.filter(x=>x.period_id===periodId&&(!opd||emp(x.subject_id)?.opd_id===opd)),q=String(body.q??'').toLowerCase(),rows=base.filter(x=>(!['atasan','rekan','bawahan'].includes(body.role)||x.rater_role===body.role)&&(!['pending','draft','submitted'].includes(body.status)||x.status===body.status)&&(!q||(emp(x.subject_id)?.name+' '+emp(x.rater_id)?.name).toLowerCase().includes(q))),per=10,pages=Math.max(1,Math.ceil(rows.length/per)),page=Math.min(Math.max(1,Number(body.page)||1),pages);return{rows:rows.slice((page-1)*per,page*per).map(x=>({id:x.id,subject_id:x.subject_id,rater_id:x.rater_id,rater_role:x.rater_role,status:x.status,opd_id:emp(x.subject_id)?.opd_id,opd_code:opdOf(emp(x.subject_id)?.opd_id)?.code??'',subject_name:emp(x.subject_id)?.name??'',rater_name:emp(x.rater_id)?.name??''})),total:rows.length,page,pages,per,stats:{total:base.length,submitted:base.filter(x=>x.status==='submitted').length}};}
  if(action==='demo_role'){db.admin=!db.admin;persist();return{};}
  if(action==='demo_reset'){db=seed();persist();return{};}
@@ -127,14 +138,14 @@ export async function demoRequest(action,body={}){
   const a=db.assignments.find(x=>x.id===Number(body.id)&&x.rater_id===1);if(!a)throw Error('Tugas tidak ditemukan.');
   if(db.periods.find(x=>x.id===a.period_id).status!=='open'||a.status==='submitted')throw Error('Penilaian sudah dikunci.');
   if(Number(body.version)!==a.version)throw Error('Draf telah berubah. Muat ulang halaman.');
-  if(Object.entries(body.answers).some(([k,v])=>!indicators.some(i=>i.id===Number(k))||!Number.isInteger(v)||v<1||v>5))throw Error('Nilai harus berupa bilangan 1 sampai 5.');
+  if(Object.entries(body.answers).some(([k,v])=>!indicatorsFor(db.periods.find(x=>x.id===a.period_id)).some(i=>i.id===Number(k))||!Number.isInteger(v)||v<1||v>5))throw Error('Nilai harus berupa bilangan 1 sampai 5.');
   Object.assign(a,{answers:body.answers,feedback:body.feedback??'',status:'draft',version:a.version+1});persist();return{version:a.version};
  }
  if(action==='submit'){
   const ids=body.ids.map(Number),rows=db.assignments.filter(x=>ids.includes(x.id)&&x.rater_id===1&&x.period_id===periodId);
   if(!rows.length||rows.length!==ids.length)throw Error('Pilih tugas yang valid.');
   if(db.periods.find(x=>x.id===periodId).status!=='open')throw Error('Periode telah ditutup.');
-  if(rows.some(x=>x.status!=='draft'||indicators.some(i=>!x.answers[i.id])))throw Error('Lengkapi tujuh indikator sebelum mengirim.');
+  const list=indicatorsFor(db.periods.find(x=>x.id===periodId));if(rows.some(x=>x.status!=='draft'||list.some(i=>!x.answers[i.id])))throw Error(`Lengkapi seluruh ${list.length} indikator sebelum mengirim.`);
   rows.forEach(x=>{x.status='submitted';x.version++;});persist();return{count:rows.length};
  }
  if(!db.admin)throw Error('Akses administrator diperlukan.');
@@ -172,12 +183,20 @@ export async function demoRequest(action,body={}){
   persist();return{};
  }
  if(action==='weights_save'){const p=db.periods.find(x=>x.id===periodId);if(!p)throw Error('Periode tidak ditemukan.');const out={};for(const [key,roles] of Object.entries(DEFAULT_WEIGHTS)){out[key]={};for(const role of Object.keys(roles)){const w=body.weights?.[key]?.[role];if(!Number.isInteger(w)||w<1||w>99)throw Error('Bobot harus bilangan bulat 1 sampai 99.');out[key][role]=w;}if(Object.values(out[key]).reduce((s,x)=>s+x,0)!==100)throw Error('Jumlah bobot tiap kondisi harus 100%.');}if(p.status!=='draft')throw Error(`Bobot ${p.name} terkunci sejak periode dibuka.`);p.weights=out;persist();return{weights:out};}
+ // Indikator tematik (cermin Api::saveThematic): tepat lima butir bertema, hanya selama periode draf.
+ if(action==='thematic_save'){const p=db.periods.find(x=>x.id===periodId);if(!p)throw Error('Periode tidak ditemukan.');const theme=String(body.theme??'').trim();if(!theme||theme.length>120)throw Error('Tema wajib diisi dan maksimal 120 karakter.');
+  const items=Array.isArray(body.indicators)?body.indicators.map(x=>({name:String(x?.name??'').trim(),description:String(x?.description??'').trim()})):[];if(items.length!==5)throw Error('Indikator tematik harus tepat 5 butir.');
+  items.forEach((x,i)=>{if(!x.name||x.name.length>80)throw Error(`Nama indikator tematik ${i+1} wajib diisi dan maksimal 80 karakter.`);if(!x.description||x.description.length>600)throw Error(`Uraian indikator tematik ${i+1} wajib diisi dan maksimal 600 karakter.`);});
+  if(new Set(items.map(x=>x.name.toLowerCase())).size!==5)throw Error('Nama indikator tematik tidak boleh sama.');if(p.status!=='draft')throw Error(`Indikator tematik ${p.name} terkunci sejak periode dibuka.`);
+  let next=Math.max(200,...db.periods.flatMap(x=>(x.thematic??[]).map(t=>t.id)))+1;p.theme=theme;p.thematic=items.map(x=>({id:next++,...x}));persist();return{theme,count:5};}
  if(action==='settings_save'){const name=(body.kabupaten_name??'').trim();if(!name||name.length>120)throw Error('Nama kabupaten wajib diisi.');db.settings.kabupaten_name=name;persist();return{};}
  if(action==='period_create'){
   const year=Number(body.year),quarter=Number(body.quarter);if(!(year>=2000&&year<=2100)||!(quarter>=1&&quarter<=4))throw Error('Tahun atau triwulan tidak valid.');
   const m=(quarter-1)*3,start=`${year}-${String(m+1).padStart(2,'0')}-01`,end=`${year}-${String(m+3).padStart(2,'0')}-${new Date(year,m+3,0).getDate()}`,name=`Triwulan ${['I','II','III','IV'][quarter-1]} ${year}`;
   if(db.periods.some(p=>p.start_date===start))throw Error(`Periode ${name} sudah ada.`);
-  db.periods.push({id:Math.max(...db.periods.map(x=>x.id))+1,name,start_date:start,end_date:end,status:'draft',weights:latestWeights()});persist();return{};
+  // Tema dan indikator tematik disalin dari periode terbaru dengan ID baru (cermin Api::createPeriod).
+  const latest=[...db.periods].sort((a,b)=>b.start_date.localeCompare(a.start_date)||b.id-a.id)[0];let next=Math.max(200,...db.periods.flatMap(x=>(x.thematic??[]).map(t=>t.id)))+1;
+  db.periods.push({id:Math.max(...db.periods.map(x=>x.id))+1,name,start_date:start,end_date:end,status:'draft',weights:latestWeights(),theme:latest?.theme??null,thematic:(latest?.thematic??[]).map(t=>({...t,id:next++}))});persist();return{};
  }
  if(action==='period_status'){
   const p=db.periods.find(x=>x.id===periodId);const next={draft:['open'],open:['closed'],closed:['open','published'],published:[]};

@@ -47,13 +47,20 @@ CREATE TABLE IF NOT EXISTS periods (
  status ENUM('draft','open','closed','published') NOT NULL DEFAULT 'draft',
  published_at DATETIME NULL,
  weights JSON NULL,
+ theme VARCHAR(120) NULL,
  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
  CHECK(end_date >= start_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+-- Indikator BerAKHLAK (period_id NULL) berlaku untuk semua periode. Indikator tematik (5 butir) melekat pada satu periode dan bertema periods.theme;
+-- diubah administrator kabupaten selama periode draf, terkunci sejak dibuka, dan disalin ke periode baru. Nilai akhir = rata-rata seluruh indikator periode.
 CREATE TABLE IF NOT EXISTS indicators (
- id TINYINT UNSIGNED PRIMARY KEY,
+ id SMALLINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+ category ENUM('berakhlak','tematik') NOT NULL DEFAULT 'berakhlak',
+ period_id BIGINT UNSIGNED NULL,
  name VARCHAR(80) NOT NULL,
- description TEXT NOT NULL
+ description TEXT NOT NULL,
+ KEY period_indicators(period_id),
+ FOREIGN KEY(period_id) REFERENCES periods(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS assignments (
  id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
@@ -75,7 +82,7 @@ CREATE TABLE IF NOT EXISTS assignments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 CREATE TABLE IF NOT EXISTS answers (
  assignment_id BIGINT UNSIGNED NOT NULL,
- indicator_id TINYINT UNSIGNED NOT NULL,
+ indicator_id SMALLINT UNSIGNED NOT NULL,
  score TINYINT UNSIGNED NOT NULL,
  PRIMARY KEY(assignment_id,indicator_id),
  FOREIGN KEY(assignment_id) REFERENCES assignments(id) ON DELETE CASCADE,

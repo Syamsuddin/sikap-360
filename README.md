@@ -21,8 +21,8 @@ Satu instalasi melayani satu kabupaten (nama dinamis, bawaan Hulu Sungai Selatan
 - Login lokal dan dua hak akses: administrator dan ASN.
 - Dashboard tugas, progres, profil, dan batas periode.
 - Pencarian dan penyaringan tugas menurut hubungan serta status.
-- Tujuh indikator BerAKHLAK dengan skala bilangan bulat 1–5.
-- Draf parsial, validasi tujuh jawaban, pengiriman satu atau beberapa draf lengkap.
+- Tujuh indikator BerAKHLAK ditambah lima indikator tematik per triwulan (tema dan butirnya ditetapkan administrator kabupaten), semuanya dengan skala bilangan bulat 1–5.
+- Draf parsial, validasi jawaban seluruh indikator periode, pengiriman satu atau beberapa draf lengkap.
 - Penguncian jawaban setelah dikirim, nomor versi draf untuk mencegah penimpaan antar sesi.
 - Hasil pribadi gabungan, grafik indikator, pilihan periode, dan cetak melalui browser.
 - Penambahan/edit pegawai, akun ASN, perubahan kata sandi, ekspor CSV.
@@ -113,11 +113,11 @@ python3 scripts/import-siasn.py ekspor-siasn.xlsx --apply --admin email.admin@in
 
 1. Masuk sebagai administrator kabupaten. Pada menu OPD & pengaturan, periksa nama kabupaten (bawaan Hulu Sungai Selatan) dan daftarkan OPD. Lengkapi data pegawai; tetapkan peran Admin OPD bagi pengelola tiap OPD agar mereka mengurus pegawai, struktur, dan pasangan penilai OPD-nya sendiri.
 2. Tetapkan atasan langsung setiap pegawai pada menu Struktur organisasi (atau pada formulir pegawai). Rekan sejawat dan bawahan langsung diturunkan otomatis. Rekan pejabat (pegawai yang punya bawahan) adalah sesama pejabat dengan atasan yang sama, misalnya Sekretaris dan para Kepala Bidang di bawah Kepala Badan; rekan staf adalah staf lain dalam unit (UNOR) yang sama, dan laman ini memperlihatkan apakah komposisi penilai tiap pegawai sudah sah. Agar kepala OPD ikut dinilai, administrator kabupaten dapat mendaftarkan Bupati (OPD tingkat kabupaten, NIP diisi kode seperti `BUPATI-HSS`) dan menetapkannya sebagai atasan para kepala OPD; para kepala OPD lalu saling menjadi rekan sejawat.
-3. Buat periode berstatus draf dengan memilih tahun dan triwulan (I: Januari–Maret, II: April–Juni, III: Juli–September, IV: Oktober–Desember), kemudian pilih periode tersebut. Nama dan rentang tanggal ditetapkan otomatis; satu triwulan hanya bisa dibuat sekali.
+3. Buat periode berstatus draf dengan memilih tahun dan triwulan (I: Januari–Maret, II: April–Juni, III: Juli–September, IV: Oktober–Desember), kemudian pilih periode tersebut. Nama dan rentang tanggal ditetapkan otomatis; satu triwulan hanya bisa dibuat sekali. Periode baru menyalin bobot serta tema dan lima indikator tematik periode terbaru; ganti tema dan butir tematik triwulan itu pada laman Metode sebelum periode dibuka.
 4. Tekan Buat penugasan pada Struktur organisasi untuk mengisi pasangan penilai dari struktur, atau tambahkan penilai satu per satu pada Periode & penilai. Rekan sejawat dan bawahan dipakai berapa pun jumlahnya (minimal satu orang); pegawai yang hanya punya atasan dilewati dan dilaporkan.
 5. Pilih peran berdasarkan posisi penilai terhadap pegawai yang dinilai. Jika A menilai bawahannya B, peran penilai A adalah Atasan. Di daftar tugas A, B diberi label Bawahan.
 6. Buka periode setelah komposisi lengkap. Distribusi penilai dikunci sejak periode dibuka.
-7. ASN mengisi tujuh indikator. Draf disimpan di server dan tetap tersedia setelah login kembali.
+7. ASN mengisi tujuh indikator BerAKHLAK dan lima indikator tematik (bila periode memilikinya). Draf disimpan di server dan tetap tersedia setelah login kembali.
 8. Kirim draf lengkap. Jawaban yang terkirim tidak bisa diedit.
 9. Setelah semua penugasan selesai, tutup periode dan publikasikan hasil.
 10. Jika periode ditutup terlalu cepat, admin membuka kembali periode yang belum dipublikasikan. Pengisian mengikuti status periode, bukan rentang tanggal: selama periode dibuka, ASN tetap dapat menyimpan dan mengirim penilaian.
@@ -143,9 +143,9 @@ Untuk setiap indikator:
 2. Kalikan rata-rata kelompok dengan bobotnya, lalu jumlahkan.
 3. Kalikan nilai tertimbang dengan 20 untuk konversi skala 20–100.
 
-Nilai akhir adalah rata-rata tujuh indikator sebelum pembulatan. Tampilan dibulatkan dua desimal. Contoh: seluruh indikator atasan 5, rekan 4, bawahan 3 menghasilkan `(5×0,60 + 4×0,25 + 3×0,15) × 20 = 89`.
+Nilai akhir adalah rata-rata seluruh indikator periode sebelum pembulatan: tujuh BerAKHLAK ditambah lima tematik bila periode memilikinya, masing-masing berbobot sama, sehingga tematik menyumbang 5/12 nilai akhir. Halaman hasil juga menampilkan rata-rata tiap kategori sebagai rincian. Tampilan dibulatkan dua desimal. Contoh: seluruh indikator atasan 5, rekan 4, bawahan 3 menghasilkan `(5×0,60 + 4×0,25 + 3×0,15) × 20 = 89`.
 
-Jumlah orang dalam kelompok tidak mengubah bobot kelompok. Penilaian yang belum masuk tidak diisi nol dan tidak memicu pengalihan bobot. Publikasi diblokir sampai seluruh penugasan pada periode telah terkirim dengan tujuh jawaban valid.
+Jumlah orang dalam kelompok tidak mengubah bobot kelompok. Penilaian yang belum masuk tidak diisi nol dan tidak memicu pengalihan bobot. Publikasi diblokir sampai seluruh penugasan pada periode telah terkirim dengan jawaban valid untuk seluruh indikator periode itu.
 
 Skor adalah hasil kuantitatif rubrik. Aplikasi tidak menetapkan predikat resmi kinerja, keputusan kepegawaian, atau kelayakan manajemen talenta secara otomatis.
 
@@ -159,7 +159,7 @@ Skor adalah hasil kuantitatif rubrik. Aplikasi tidak menetapkan predikat resmi k
 - Login memakai akun lokal. SIMPEG, SSO, SKP/eKinerja, notifikasi email/WhatsApp, dan manajemen talenta belum diintegrasikan.
 - Unit kerja berupa nama unit. Cakupan admin saat ini seluruh aplikasi, belum ada administrator dengan pembatasan per OPD.
 - Data audit tersedia di tabel `audit_logs`, belum ada halaman penampil audit.
-- Instrumen tujuh indikator tetap untuk versi 1.0. Penggantian indikator setelah ada data memerlukan versi instrumen/migrasi, bukan pengeditan langsung. Bobot komposisi dapat diubah administrator kabupaten per periode selama draf dan terkunci sejak periode dibuka.
+- Tujuh indikator BerAKHLAK tetap; penggantiannya setelah ada data memerlukan versi instrumen/migrasi, bukan pengeditan langsung. Lima indikator tematik melekat pada tiap periode: administrator kabupaten mengganti tema dan butirnya pada laman Metode selama periode draf, dan sejak periode dibuka butir tematik terkunci. Periode yang dibuat sebelum v1.9 tidak memiliki indikator tematik. Bobot komposisi dapat diubah administrator kabupaten per periode selama draf dan terkunci sejak periode dibuka.
 
 ## Struktur proyek
 
@@ -174,10 +174,12 @@ Skor adalah hasil kuantitatif rubrik. Aplikasi tidak menetapkan predikat resmi k
 | app/Api.php | Autentikasi, akses, dan operasi transaksi |
 | app/Scoring.php | Validasi komposisi, jawaban, dan perhitungan |
 | app/Database.php | Koneksi PDO MySQL |
-| database/schema.sql | Struktur database dan tujuh indikator |
+| database/schema.sql | Struktur database dan tujuh indikator BerAKHLAK |
 | database/upgrade-1.1-struktur.sql | Migrasi kolom supervisor_id untuk instalasi yang dibuat sebelum fitur struktur organisasi |
 | database/upgrade-1.2-opd.sql | Migrasi multi-OPD (tabel opd, settings, employees.opd_id, peran admin_opd); tiap nilai unit lama menjadi satu OPD |
 | database/upgrade-1.8-bobot.sql | Kolom periods.weights: bobot komposisi tiap periode (diubah di laman Metode selama draf) |
+| database/upgrade-1.9-tematik.sql | Indikator tematik per periode: kolom indicators.category dan indicators.period_id, periods.theme, ID indikator SMALLINT |
+| database/tematik-triwulan-iv-2026.sql | Lima indikator tematik Triwulan IV 2026, tema Pemberantasan Korupsi |
 | config/app.php | Pembacaan konfigurasi lingkungan |
 | scripts/install.php | Instalasi awal melalui CLI |
 | scripts/seed-demo.php | Seeder data fiktif |
