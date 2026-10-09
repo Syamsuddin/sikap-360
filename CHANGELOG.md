@@ -4,6 +4,21 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [Belum dirilis]
+
+Tidak ada migrasi database.
+
+### Ditambahkan
+- Grafik jaring laba-laba kedua pada kartu "Nilai saya" untuk indikator tematik, di bawah grafik BerAKHLAK. Tiap grafik diberi keterangan nama dan rata-ratanya, misalnya "BerAKHLAK · 95" dan "Tematik · Pemberantasan Korupsi · 65". Grafik tematik sepenuhnya dinamis: label sumbu diturunkan dari nama butir tematik periode terpilih (kata terpanjang, misalnya Gratifikasi dan Kepentingan, diberi nomor bila kembar), nama lengkap tampil di tooltip dan pembaca layar, jumlah sudut mengikuti banyaknya butir, keterangan mengikuti tema periode, dan nilai tiap titik berasal dari hasil penilaian. Periode tanpa indikator tematik tetap menampilkan satu grafik.
+
+### Diubah
+- Dashboard pegawai didesain ulang agar info penting terlihat tanpa menggulir. Kartu "Penilaian saya" kini memuat seluruh info penugasan dalam satu kartu: lingkar progres, bilah status bertingkat dengan jumlah terkirim/draf/belum, sisa hari menuju batas periode, tombol "Mulai menilai" atau "Lanjutkan draf" ke tugas berikutnya, tombol "Kirim n draf lengkap", dan lima tugas teratas (draf dan yang belum dinilai lebih dulu; tiga di ponsel). Kolom kanan memuat "Nilai saya" dan kartu ringkas "Yang dinilai" (jumlah indikator dan bobot penilai). Kartu "Penilaian saya" dan "Nilai saya" muat dalam satu layar mulai 1366×768, dan seluruh dashboard mulai 1440×900; sebelumnya dashboard setinggi 2,6 layar di 1366×768. Di ponsel tinggi dashboard turun dari 4 menjadi 2 layar dengan kartu "Penilaian saya" utuh di layar pertama.
+- Sapaan dashboard memakai nama tanpa gelar, misalnya "Selamat datang, Rina".
+- Kartu "Nilai saya" menampilkan donut dan grafik berdampingan. Label grafik yang panjang mengecilkan jari-jari grafik sehingga huruf tetap terbaca dan tidak terpotong, dan baris nilai tematik terpisah diganti keterangan grafik tematik.
+
+### Dihapus
+- Kartu statistik terpisah, kartu progres gelap, catatan batas penilaian, kartu profil, kartu "Nilai yang membentuk ASN", dan kartu "Sudut pandang yang lengkap" dari dashboard pegawai. Isinya tercakup kartu "Penilaian saya", grafik "Nilai saya", dan kartu "Yang dinilai"; profil tetap tersedia di menu akun dan rincian metode di laman Metode.
+
 ## [1.10.0] - 2026-10-09
 
 Tidak ada migrasi database.

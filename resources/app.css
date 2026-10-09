@@ -34,3 +34,32 @@
 .opd-progress{display:flex;align-items:center;gap:10px;min-width:130px}.opd-progress .bar-track{flex:1}.opd-progress b{font-size:13px;min-width:48px;text-align:right;color:var(--ui-text-2,#40516d)}
 .admin-opd-table td p{margin-top:3px}.admin-opd-table th,.admin-opd-table td:first-child{white-space:normal}.admin-opd-table td:first-child{min-width:190px}.page-head .admin-actions{flex-shrink:0}.admin-table-head{flex-wrap:wrap}.admin-table-head>div{flex:1 1 320px;min-width:0}
 @media(max-width:720px){.page-head:has(.admin-actions){flex-direction:column;align-items:stretch}.page-head:has(.admin-actions) p{max-width:none}.page-head .admin-actions .btn{flex:1}.admin-opd-table td:first-child{min-width:0}.opd-progress{min-width:112px;gap:8px}.opd-progress b{min-width:42px;font-size:12px}}
+/* Dashboard pegawai satu layar: kartu "Penilaian saya" berpita navy (lingkar progres, bilah status bertingkat, jumlah per status, batas waktu, tombol lanjut/kirim)
+   di atas lima tugas teratas; kolom kanan memuat "Nilai saya" dengan donut dan jaring laba-laba berdampingan serta ringkasan indikator dan bobot. */
+.dash-grid{display:grid;grid-template-columns:minmax(0,1fr) 390px;gap:22px;align-items:start}.dash-side{display:grid;gap:18px}.dash-side .score-card{margin-bottom:0;padding:20px}
+.dash-side .has-radar .score-visual{display:grid;grid-template-columns:auto minmax(0,1fr);gap:12px;align-items:center;margin:10px 0 14px}.dash-side .has-radar .donut-wrap{margin:0}.dash-side .radar{margin:0 -8px}.dash-side .radar figcaption{display:none}
+.dash-side .score-card .donut{width:108px;height:108px;padding:8px}.dash-side .score-card .donut strong{font-size:24px}.dash-side .score-card .donut small{font-size:10px}.dash-side .score-card .btn{margin-top:14px}.dash-side .score-card .progress-meta{padding-top:13px}
+.task-hub{overflow:hidden}.task-hub-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:22px;align-items:center;padding:20px 22px;background:#132754;color:#fff}
+.task-hub .hub-ring{width:112px;height:112px;padding:9px}.task-hub .hub-ring strong{font-size:26px}.task-hub .hub-ring small{font-size:10px}
+.task-hub-info h2{font-size:17px}.task-hub-info .badge{background:#294572;color:#b7d0ff}.task-hub-info>p{font-size:13px;color:#c3d1ea;margin-top:6px}
+.hub-bar{display:flex;gap:3px;height:8px;margin-top:13px;border-radius:5px;overflow:hidden;background:#2b4069}.hub-bar span{min-width:6px}.s-done{background:#5fd4a4}.s-draft{background:#f2b65f}.s-pending{background:#4a6290}
+.hub-chips{display:flex;flex-wrap:wrap;gap:6px 16px;margin-top:11px;font-size:12px;color:#a9bbdb}.hub-chip{display:inline-flex;align-items:center;gap:6px}.hub-chip i{width:9px;height:9px;border-radius:3px;display:inline-block}.hub-chip b{color:#fff;font-weight:650}
+.hub-deadline{display:flex;align-items:center;gap:7px;margin-top:10px;font-size:12px;color:#c9d6ee}.hub-deadline .icon{width:15px;height:15px;color:#f2b65f;flex-shrink:0}
+.task-hub-actions{display:grid;gap:8px;min-width:190px;justify-items:stretch}.task-hub-actions .btn{font-size:12px}.hub-primary{background:#fff;color:#19366d;border:none}.hub-primary:hover{background:#e8efff;color:#19366d}
+.hub-secondary{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}.hub-secondary:hover{background:rgba(255,255,255,.1);color:#fff}.hub-next{font-size:11px;color:#a2b3d4;text-align:center;line-height:1.5}.hub-next b{color:#fff;font-weight:600}
+.task-hub .table td{padding-top:11px;padding-bottom:11px}
+.dash-info{padding:20px}.dash-info h2{font-size:15px}.dash-info>p{font-size:12px;color:var(--ui-muted,#708099);margin-top:6px;line-height:1.6}.dash-info .value-tags{margin-top:11px}
+.dash-theme{color:var(--ui-green,#167e60);font-weight:600}
+.dash-weights{margin-top:14px;padding-top:13px;border-top:1px solid var(--ui-border-soft,#edf0f6);font-size:11px;color:var(--ui-muted,#708099)}.dash-weights .weight-bar{margin:8px 0}.dash-legend{display:flex;flex-wrap:wrap;gap:4px 14px}.dash-legend span{display:inline-flex;align-items:center;gap:6px}.dash-legend b{color:var(--ui-text,#192741)}
+@media(max-width:1180px){.dash-grid{grid-template-columns:minmax(0,1fr) 340px}.task-hub-head{grid-template-columns:auto minmax(0,1fr)}.task-hub-actions{grid-column:1/-1;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));align-items:center}.hub-next{grid-column:1/-1;text-align:left}}
+@media(max-width:940px){.dash-grid{grid-template-columns:1fr}.dash-side{grid-template-columns:repeat(auto-fit,minmax(300px,1fr));align-items:start}}
+@media(max-width:720px){.task-hub-head{padding:18px 16px;gap:14px}.task-hub .hub-ring{width:88px;height:88px;padding:7px}.task-hub .hub-ring strong{font-size:20px}.task-hub .hub-ring small{display:none}.task-hub-info h2{font-size:16px}.hub-chips{gap:4px 12px;font-size:11px}.dash-side{grid-template-columns:1fr}}
+.page-head p:empty{display:none}.page-head:has(+.dash-grid){margin-bottom:16px}
+.dash-side .score-card .btn{min-height:0;height:auto;padding:9px 12px;margin-top:12px}.dash-side .score-card>p{margin-top:4px}.dash-side .score-card .score-note,.dash-side .score-card .progress-meta{padding-top:11px}.dash-side .score-card .score-empty{margin-top:12px;padding:11px}
+.task-hub-head{padding:18px 22px;gap:20px}.task-hub-actions{min-width:168px}.task-hub .table td{padding-top:9px;padding-bottom:9px}.dash-info{padding:18px 20px}.dash-weights{margin-top:12px;padding-top:11px}
+.dash-side{gap:16px}.dash-side .score-card{padding:18px 20px}@media(max-width:720px){.task-hub tbody tr:nth-child(n+4){display:none}}
+.hub-ring-empty{display:grid;place-items:center;border-radius:50%;border:9px solid #2b4069;color:#7295ff}.hub-ring-empty .icon{width:30px;height:30px}@media(max-width:1180px){.hub-next{order:3}.task-hub .table .hide-mobile{display:none}}@media(max-width:720px){.hub-ring-empty{border-width:7px}.hub-ring-empty .icon{width:24px;height:24px}}
+/* Dua grafik jaring laba-laba (BerAKHLAK di atas, tematik di bawah) di samping donut yang membentang dua baris; keterangan menamai tiap grafik beserta rata-ratanya. */
+.dash-side .two-radar{row-gap:4px}.dash-side .two-radar>.donut-wrap{grid-row:1/span 2}.dash-side .two-radar .radar figcaption{display:block;font-size:11px;font-weight:600;color:var(--ui-text-2,#40516d);margin:0 0 2px}
+.dash-side .two-radar .radar svg{max-width:234px}.dash-side .has-radar .score-visual.two-radar{row-gap:0;margin:6px 0 10px}.dash-side:has(.two-radar){gap:12px}
+.dash-info .dash-weights{margin-top:10px;padding-top:9px}.dash-info .dash-weights .weight-bar{margin:6px 0}

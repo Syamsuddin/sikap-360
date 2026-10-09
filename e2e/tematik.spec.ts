@@ -60,5 +60,11 @@ test('tematik: admin mengisi lima indikator di laman Metode, penilai mengisi 12 
   const [sent] = await Promise.all([page.waitForResponse(r => r.url().includes('action=submit')), page.locator('[data-action="confirm-submit"]').click()]);
   expect(sent.status(), await sent.text()).toBe(200);
   await expect(page.locator('#notifications')).toContainText('1 penilaian berhasil dikirim.');
+  // Dashboard periode bertematik: kartu Nilai saya memuat grafik jaring laba-laba kedua untuk lima indikator tematik, dengan label sumbu yang berbeda-beda.
+  await page.goto('/#dashboard'); await expect(page.locator('.task-hub')).toBeVisible();
+  await expect(page.locator('.score-card .radar')).toHaveCount(2);
+  await expect(page.locator('.score-card figcaption').nth(1)).toContainText('Tematik · Pemberantasan Korupsi');
+  const labels = await page.locator('.score-card .radar').nth(1).locator('.radar-lbl').allTextContents();
+  expect(labels.length).toBe(5); expect(new Set(labels).size, labels.join(', ')).toBe(5);
   expect([...new Set(errs)], errs.join('\n')).toEqual([]);
 });

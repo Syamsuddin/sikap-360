@@ -19,7 +19,7 @@ Aplikasi penilaian perilaku ASN berbasis PHP 8.3, MySQL, Tailwind CSS 4, dan dai
 Satu instalasi melayani satu kabupaten (nama dinamis, bawaan Hulu Sungai Selatan) dengan banyak OPD dalam satu kerangka. Administrator kabupaten mengelola OPD, periode, dan pengaturan; Admin OPD mengelola pegawai, struktur organisasi, dan pasangan penilai OPD-nya; periode penilaian berlaku serentak untuk seluruh OPD.
 
 - Login lokal dan dua hak akses: administrator dan ASN.
-- Dashboard tugas, progres, profil, dan batas periode.
+- Dashboard pegawai satu layar (1366×768 ke atas): kartu "Penilaian saya" berisi progres, jumlah terkirim/draf/belum, batas waktu, tombol lanjut dan kirim draf lengkap, serta lima tugas teratas; di sampingnya kartu "Nilai saya" (donut nilai akhir, grafik jaring laba-laba BerAKHLAK, dan grafik kedua untuk indikator tematik bila periode memilikinya) serta ringkasan indikator dan bobot periode.
 - Dashboard admin untuk administrator kabupaten: progres penilaian skala kabupaten, progres per peran penilai, status OPD, dan tabel progres per OPD (pencarian, filter status, urutan, pagination, unduh CSV).
 - Pencarian dan penyaringan tugas menurut hubungan serta status.
 - Tujuh indikator BerAKHLAK ditambah lima indikator tematik per triwulan (tema dan butirnya ditetapkan administrator kabupaten), semuanya dengan skala bilangan bulat 1–5.
