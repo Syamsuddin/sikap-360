@@ -35,3 +35,5 @@ Test hanya memakai baris DISAHKAN. Baris tanpa sumber = [PERLU KEPUTUSAN].
 | R-28 | Tematik hanya dapat diubah selama periode draf; menggantikan seluruh butir lama | periode open/closed/published | HTTP 409 | Api::saveThematic, thematic_flows T10, T13, T14, T18 | DISAHKAN |
 | R-29 | period_create menyalin tema dan 5 butir tematik periode terbaru dengan ID baru | periode terbaru bertematik | salinan independen | Api::createPeriod, thematic_flows T15–T16 | DISAHKAN |
 | R-30 | Penilaian terkirim tanpa jawaban tematik pada periode bertematik memblokir publikasi | 7 jawaban terkirim | HTTP 409 | Scoring::calculate, thematic_flows T25 | DISAHKAN |
+| R-31 | admin_dashboard hanya admin kabupaten; angka per OPD = hitungan ulang baris penugasan (penugasan/pegawai menurut OPD dinilai, penilai menurut OPD penilai) | asn/admin_opd; data seed | 403; cocok | Api::adminDashboard, tests/admin_dashboard_flows.php D1–D10 | DISAHKAN |
+| R-32 | admin_dashboard hanya berisi jumlah: tanpa nilai, jawaban, catatan, atau nama pegawai; OPD tanpa penugasan tetap tampil | respons | tanpa field/nama tsb | admin_dashboard_flows D6–D8 | DISAHKAN |

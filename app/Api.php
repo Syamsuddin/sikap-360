@@ -65,8 +65,8 @@ final class Api
   if($action==='save_draft')return $this->saveDraft($body);
   if($action==='submit')return $this->submit($body);
   $this->admin();
-  if(in_array($action,['period_create','period_status','opd_save','settings_save','weights_save','thematic_save'],true))$this->superadmin();
-  return match($action){'assignment_list'=>$this->listAssignments($body),'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),'weights_save'=>$this->saveWeights($body),'thematic_save'=>$this->saveThematic($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
+  if(in_array($action,['period_create','period_status','opd_save','settings_save','weights_save','thematic_save','admin_dashboard'],true))$this->superadmin();
+  return match($action){'assignment_list'=>$this->listAssignments($body),'employee_save'=>$this->saveEmployee($body),'period_create'=>$this->createPeriod($body),'period_status'=>$this->periodStatus($body),'assignment_create'=>$this->createAssignment($body),'assignment_delete'=>$this->deleteAssignment($body),'supervisor_set'=>$this->setSupervisor($body),'assignment_generate'=>$this->generateAssignments($body),'opd_save'=>$this->saveOpd($body),'settings_save'=>$this->saveSettings($body),'weights_save'=>$this->saveWeights($body),'thematic_save'=>$this->saveThematic($body),'admin_dashboard'=>$this->adminDashboard($body),default=>throw new ApiError('Tindakan tidak ditemukan.',404)};
  }
  private function login(array $body): array
  {
@@ -200,6 +200,22 @@ final class Api
   $per=10;$pages=max(1,(int)ceil($total/$per));$page=min(max(1,(int)($b['page']??1)),$pages);
   $rows=$this->all('SELECT a.id,a.subject_id,a.rater_id,a.rater_role,a.status,s.opd_id,o.code AS opd_code,s.name AS subject_name,r.name AS rater_name'.$from.$where.' ORDER BY s.opd_id,a.subject_id,a.rater_role,a.id LIMIT '.$per.' OFFSET '.(($page-1)*$per),$params);
   return ['rows'=>$rows,'total'=>$total,'page'=>$page,'pages'=>$pages,'per'=>$per,'stats'=>['total'=>(int)$stats['total'],'submitted'=>(int)$stats['submitted']]];
+ }
+ // Dashboard admin kabupaten: progres penilaian satu periode untuk seluruh kabupaten dan per OPD, hanya berupa jumlah (tanpa nilai maupun nama penilai).
+ // Penugasan dan pegawai dinilai dihitung menurut OPD pegawai yang dinilai (sama dengan assignment_list); penilai menurut OPD penilai, karena penilai bisa lintas OPD
+ // (Bupati, sesama kepala OPD). Pegawai selesai dinilai = seluruh penugasannya terkirim; penilai tuntas = seluruh tugasnya terkirim.
+ private function adminDashboard(array $b): array
+ {
+  $p=$this->period((int)($b['period_id']??0));$id=(int)$p['id'];
+  $opds=[];foreach($this->all('SELECT o.id,o.name,o.code,o.active,(SELECT COUNT(*) FROM employees e WHERE e.opd_id=o.id AND e.active=1) AS employees FROM opd o ORDER BY o.name') as $o)$opds[(int)$o['id']]=['id'=>(int)$o['id'],'name'=>$o['name'],'code'=>$o['code'],'active'=>(int)$o['active'],'employees'=>(int)$o['employees'],'total'=>0,'submitted'=>0,'draft'=>0,'pending'=>0,'subjects'=>0,'subjects_done'=>0,'raters'=>0,'raters_done'=>0];
+  foreach($this->all("SELECT s.opd_id,COUNT(*) AS total,SUM(a.status='submitted') AS submitted,SUM(a.status='draft') AS draft,COUNT(DISTINCT a.subject_id) AS subjects FROM assignments a JOIN employees s ON s.id=a.subject_id WHERE a.period_id=? GROUP BY s.opd_id",[$id]) as $r){$o=&$opds[(int)$r['opd_id']];$o['total']=(int)$r['total'];$o['submitted']=(int)$r['submitted'];$o['draft']=(int)$r['draft'];$o['pending']=$o['total']-$o['submitted']-$o['draft'];$o['subjects']=(int)$r['subjects'];unset($o);}
+  foreach($this->all("SELECT opd_id,COUNT(*) AS c FROM (SELECT s.opd_id FROM assignments a JOIN employees s ON s.id=a.subject_id WHERE a.period_id=? GROUP BY a.subject_id,s.opd_id HAVING SUM(a.status<>'submitted')=0) x GROUP BY opd_id",[$id]) as $r)$opds[(int)$r['opd_id']]['subjects_done']=(int)$r['c'];
+  foreach($this->all("SELECT opd_id,COUNT(*) AS raters,SUM(open_tasks=0) AS done FROM (SELECT r.opd_id,SUM(a.status<>'submitted') AS open_tasks FROM assignments a JOIN employees r ON r.id=a.rater_id WHERE a.period_id=? GROUP BY a.rater_id,r.opd_id) x GROUP BY opd_id",[$id]) as $r){$opds[(int)$r['opd_id']]['raters']=(int)$r['raters'];$opds[(int)$r['opd_id']]['raters_done']=(int)$r['done'];}
+  $sum=static fn(string $k)=>array_sum(array_column($opds,$k));$busy=array_filter($opds,static fn($o)=>$o['total']>0);
+  $roles=[];foreach($this->all("SELECT rater_role,COUNT(*) AS total,SUM(status='submitted') AS submitted FROM assignments WHERE period_id=? GROUP BY rater_role",[$id]) as $r)$roles[$r['rater_role']]=['total'=>(int)$r['total'],'submitted'=>(int)$r['submitted']];
+  $summary=['employees'=>$sum('employees'),'opds'=>count($opds),'opds_assigned'=>count($busy),'opds_done'=>count(array_filter($busy,static fn($o)=>$o['submitted']===$o['total'])),'opds_started'=>count(array_filter($busy,static fn($o)=>$o['submitted']+$o['draft']>0&&$o['submitted']<$o['total']))];
+  foreach(['total','submitted','draft','pending','subjects','subjects_done','raters','raters_done'] as $k)$summary[$k]=$sum($k);
+  return ['period'=>['id'=>$id,'name'=>$p['name'],'status'=>$p['status'],'end_date'=>$p['end_date']],'summary'=>$summary,'roles'=>array_map(static fn($role)=>['role'=>$role]+($roles[$role]??['total'=>0,'submitted'=>0]),['atasan','rekan','bawahan']),'opds'=>array_values($opds),'generated_at'=>date('Y-m-d H:i:s')];
  }
  private function generateAssignments(array $b): array
  {

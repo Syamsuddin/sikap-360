@@ -8,7 +8,12 @@ Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang ter
 
 Tidak ada migrasi database.
 
+### Ditambahkan
+- Laman Dashboard admin (menu Pengelolaan, khusus administrator kabupaten) untuk periode terpilih. Bagian atas berisi kartu progres skala kabupaten: persentase penugasan terkirim, jumlah terkirim/draf/belum, pegawai selesai dinilai, dan penilai yang sudah mengirim semua tugasnya. Di bawahnya progres per peran penilai dan jumlah OPD per status (Tuntas, Berjalan, Belum mulai, Tanpa penugasan). Bagian bawah berisi tabel progres per OPD dengan pencarian, filter status, urutan (nama, progres terendah atau tertinggi, penugasan terbanyak), pagination 10 OPD per halaman, dan unduhan CSV. Laman hanya menampilkan jumlah, tanpa nilai maupun identitas penilai. Data diambil saat laman dibuka dan dapat dimuat ulang.
+- Aksi API `admin_dashboard` untuk data laman tersebut.
+
 ### Diubah
+- Panduan administrator kabupaten menyertakan langkah memantau progres pada Dashboard admin.
 - Laman masuk menyebut "Tujuh indikator BerAKHLAK dan tematik triwulan".
 - README memuat bagian "Indikator tematik per triwulan" (cara mengganti tema dan butir tiap triwulan) serta perintah regresi lengkap. `docs/VALIDASI.md` memuat langkah uji penerimaan indikator tematik. Bantuan `--apply` pada impor SIASN menyebut bahwa periode beserta indikator tematiknya ikut terhapus.
 

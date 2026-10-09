@@ -48,5 +48,6 @@ Gunakan database uji yang terpisah dari data ASN sebenarnya. Langkah 6–8 dan 2
 21. Kirim thematic_save dari akun Admin OPD dan ASN. Harapan: HTTP 403. Kirim thematic_save untuk periode yang sudah dibuka. Harapan: HTTP 409.
 22. Buat periode baru setelah periode bertematik. Harapan: tema dan lima butir tematik tersalin dengan ID baru, dan mengubah salinan tidak mengubah periode asal.
 23. Lengkapi dan publikasikan periode bertematik. Harapan: formulir menampilkan dua kelompok bernomor 1–12, nilai akhir sama dengan rata-rata 12 indikator hitungan manual, dan halaman hasil menampilkan rata-rata BerAKHLAK dan tematik.
+24. Buka Dashboard admin sebagai administrator kabupaten, lalu bandingkan kartu dan tabel per OPD dengan hitungan manual dari daftar penugasan. Akun Admin OPD dan ASN tidak melihat menu ini, dan admin_dashboard dari akun tersebut menghasilkan HTTP 403.
 
-Uji otomatis perhitungan dapat diulang dengan `php tests/scoring.php`. Bagian tematik pada langkah 6–8 serta langkah 20–23 juga dijalankan otomatis oleh `tests/thematic_flows.php` dan `e2e/tematik.spec.ts` (lihat Pengujian perhitungan di README).
+Uji otomatis perhitungan dapat diulang dengan `php tests/scoring.php`. Bagian tematik pada langkah 6–8 serta langkah 20–23 juga dijalankan otomatis oleh `tests/thematic_flows.php` dan `e2e/tematik.spec.ts` (lihat Pengujian perhitungan di README). Langkah 24 dijalankan otomatis oleh `tests/admin_dashboard_flows.php` dan `e2e/dashboard-admin.spec.ts`.

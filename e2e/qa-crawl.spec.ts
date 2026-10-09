@@ -1,7 +1,7 @@
 // e2e/qa-crawl.spec.ts — crawl menu + 3 alur di browser nyata. Gagal bila ada error JS, console error, atau 5xx.
 import { test, expect } from '@playwright/test';
 import { USER, ADMIN, watch, login, openEvaluation } from './helpers';
-const PAGES = ['#dashboard', '#assessments', '#results', '#method', '#guide', '#employees', '#structure', '#periods', '#opd'];
+const PAGES = ['#dashboard', '#admin', '#assessments', '#results', '#method', '#guide', '#employees', '#structure', '#periods', '#opd'];
 
 test('crawl: admin membuka semua menu tanpa error JS/console/5xx', async ({ page }) => {
   const errs: string[] = []; watch(page, errs);

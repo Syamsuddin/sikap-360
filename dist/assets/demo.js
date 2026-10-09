@@ -149,6 +149,14 @@ export async function demoRequest(action,body={}){
   rows.forEach(x=>{x.status='submitted';x.version++;});persist();return{count:rows.length};
  }
  if(!db.admin)throw Error('Akses administrator diperlukan.');
+ // Dashboard admin (cermin Api::adminDashboard): penugasan dan pegawai dinilai per OPD pegawai yang dinilai, penilai per OPD penilai; hanya jumlah.
+ if(action==='admin_dashboard'){const p=db.periods.find(x=>x.id===periodId);if(!p)throw Error('Periode tidak ditemukan.');const emp=Object.fromEntries(db.employees.map(e=>[e.id,e])),rows=db.assignments.filter(x=>x.period_id===periodId);
+  const opds=db.opds.map(o=>({id:o.id,name:o.name,code:o.code,active:o.active?1:0,employees:db.employees.filter(e=>e.opd_id===o.id&&e.active).length,total:0,submitted:0,draft:0,pending:0,subjects:0,subjects_done:0,raters:0,raters_done:0})),byId=Object.fromEntries(opds.map(o=>[o.id,o])),subjects={},raters={};
+  for(const a of rows){const o=byId[emp[a.subject_id]?.opd_id];if(o){o.total++;o[a.status==='submitted'?'submitted':a.status==='draft'?'draft':'pending']++;}(subjects[a.subject_id]??=[]).push(a);(raters[a.rater_id]??=[]).push(a);}
+  for(const [list,key] of [[subjects,'subjects'],[raters,'raters']])for(const [id,tasks] of Object.entries(list)){const o=byId[emp[id]?.opd_id];if(o){o[key]++;if(tasks.every(a=>a.status==='submitted'))o[key+'_done']++;}}
+  opds.sort((a,b)=>a.name.localeCompare(b.name,'id'));const sum=k=>opds.reduce((s,o)=>s+o[k],0),busy=opds.filter(o=>o.total),pad=n=>String(n).padStart(2,'0'),now=new Date();
+  const summary={employees:sum('employees'),opds:opds.length,opds_assigned:busy.length,opds_done:busy.filter(o=>o.submitted===o.total).length,opds_started:busy.filter(o=>o.submitted+o.draft>0&&o.submitted<o.total).length};for(const k of ['total','submitted','draft','pending','subjects','subjects_done','raters','raters_done'])summary[k]=sum(k);
+  return{period:{id:p.id,name:p.name,status:p.status,end_date:p.end_date},summary,roles:['atasan','rekan','bawahan'].map(role=>({role,total:rows.filter(a=>a.rater_role===role).length,submitted:rows.filter(a=>a.rater_role===role&&a.status==='submitted').length})),opds,generated_at:`${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())} ${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`};}
  if(action==='employee_save'){
   if(!body.name?.trim()||!body.nip?.trim())throw Error('Nama dan NIP wajib diisi.');
   if(db.employees.some(e=>e.nip===body.nip&&e.id!==Number(body.id)))throw Error('NIP sudah terdaftar.');
