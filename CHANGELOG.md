@@ -4,7 +4,7 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
-## [Belum dirilis]
+## [1.9.0] - 2026-10-09
 
 Migrasi database: jalankan `database/upgrade-1.9-tematik.sql` sebelum memasang kode versi ini. Migrasi menambah kolom `indicators.category`, `indicators.period_id`, dan `periods.theme`, serta memperlebar ID indikator menjadi SMALLINT. Tujuh indikator yang ada menjadi kategori BerAKHLAK. Periode yang sudah ada tidak memiliki indikator tematik, sehingga tetap dinilai dengan tujuh indikator. Untuk memasang indikator tematik Triwulan IV 2026, jalankan juga `database/tematik-triwulan-iv-2026.sql` setelah migrasi.
 
