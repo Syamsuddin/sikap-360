@@ -5,7 +5,8 @@ Pemakaian:
   python3 scripts/import-siasn.py ekspor.xlsx --apply --admin email@instansi.go.id
 
 Opsi:
-  --apply             kosongkan database (kecuali indikator dan pengaturan) lalu impor
+  --apply             kosongkan database (kecuali indikator BerAKHLAK dan pengaturan; periode
+                      beserta indikator tematiknya ikut terhapus) lalu impor
   --admin EMAIL       email pegawai yang menjadi administrator kabupaten (wajib bersama --apply)
   --semua             sertakan guru, pegawai sekolah (SD/SMP/TK), dan Puskesmas
   --timpa-penilaian   izinkan penghapusan penugasan/jawaban penilaian yang sudah ada

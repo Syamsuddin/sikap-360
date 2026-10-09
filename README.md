@@ -95,7 +95,7 @@ Contoh konfigurasi Nginx tersedia pada `config/nginx.conf.example`. Sesuaikan so
 
 ## Impor pegawai dari SIASN
 
-`scripts/import-siasn.py` mengisi OPD, pegawai, akun, dan atasan langsung dari ekspor SIASN (`.xlsx`). Skrip ini **mengosongkan seluruh data** (kecuali indikator dan pengaturan) lalu mengisinya ulang, jadi backup database terlebih dahulu. Kebutuhan: Python 3 dengan `pandas`, `openpyxl`, `pymysql`, serta PHP CLI. Koneksi database dibaca dari `.env`.
+`scripts/import-siasn.py` mengisi OPD, pegawai, akun, dan atasan langsung dari ekspor SIASN (`.xlsx`). Skrip ini **mengosongkan seluruh data** (kecuali tujuh indikator BerAKHLAK dan pengaturan) lalu mengisinya ulang, jadi backup database terlebih dahulu. Periode ikut terhapus beserta indikator tematiknya, sehingga tematik triwulan perlu diisi lagi setelah impor. Kebutuhan: Python 3 dengan `pandas`, `openpyxl`, `pymysql`, serta PHP CLI. Koneksi database dibaca dari `.env`.
 
 ```bash
 python3 scripts/import-siasn.py ekspor-siasn.xlsx          # pratinjau statistik tanpa menulis
@@ -124,6 +124,19 @@ python3 scripts/import-siasn.py ekspor-siasn.xlsx --apply --admin email.admin@in
 11. ASN memilih periode yang dipublikasikan pada Hasil penilaian.
 
 Pegawai yang belum diberi pasangan penilai belum menjadi peserta penilaian pada periode tersebut. Penilaian diri sendiri ditolak. Pasangan penilai yang sama tidak bisa didaftarkan dua kali untuk pegawai/periode yang sama.
+
+## Indikator tematik per triwulan
+
+Selain tujuh indikator BerAKHLAK yang berlaku untuk semua periode, tiap periode dapat memiliki lima indikator tematik dengan tema yang berganti setiap triwulan. Penilai menjawab kedua kelompok pada formulir yang sama dengan skala 1–5, dan nilai akhir menghitung keduanya dengan bobot setara (lihat Perhitungan).
+
+1. Pilih periode berstatus draf, lalu buka laman Metode sebagai administrator kabupaten.
+2. Pada bagian Indikator tematik, isi tema triwulan (maksimal 120 karakter) serta nama (maksimal 80 karakter) dan uraian perilaku (maksimal 600 karakter) untuk tepat lima butir. Nama butir tidak boleh sama.
+3. Simpan. Penyimpanan berikutnya selama periode masih draf menggantikan seluruh butir, dan setiap perubahan tercatat di `audit_logs`.
+4. Buka periode. Sejak itu butir tematik terkunci dan hanya dapat diubah langsung di database.
+
+Periode baru menyalin tema dan butir tematik periode terbaru, jadi ganti isinya sebelum periode dibuka. Admin OPD dan ASN hanya dapat membaca indikator tematik. Rumuskan butir sebagai perilaku yang dapat diamati atasan, rekan, dan bawahan pada semua jenjang, dari pelaksana sampai kepala OPD.
+
+Triwulan IV 2026 bertema Pemberantasan Korupsi (`database/tematik-triwulan-iv-2026.sql`): Menolak Gratifikasi dan Pungutan Liar; Mengelola Konflik Kepentingan; Jujur dalam Anggaran, Aset, dan Laporan; Transparan dan Taat Prosedur; serta Berani Menolak dan Melaporkan Penyimpangan.
 
 ## Perhitungan
 
@@ -157,7 +170,7 @@ Skor adalah hasil kuantitatif rubrik. Aplikasi tidak menetapkan predikat resmi k
 - Relasi penilai dan jawaban tetap disimpan di database untuk kebutuhan integritas dan audit. Administrator database mempunyai akses teknis. Sistem tidak menjanjikan anonimitas terhadap pengelola server.
 - Catatan pengembangan disimpan tetapi belum dipublikasikan kepada pegawai. Tinjauan/anonimisasi catatan belum dibuat.
 - Login memakai akun lokal. SIMPEG, SSO, SKP/eKinerja, notifikasi email/WhatsApp, dan manajemen talenta belum diintegrasikan.
-- Unit kerja berupa nama unit. Cakupan admin saat ini seluruh aplikasi, belum ada administrator dengan pembatasan per OPD.
+- Unit kerja berupa nama unit. Admin OPD hanya mengelola pegawai, struktur, dan penugasan OPD-nya; periode, bobot, indikator tematik, OPD, dan pengaturan hanya dikelola administrator kabupaten.
 - Data audit tersedia di tabel `audit_logs`, belum ada halaman penampil audit.
 - Tujuh indikator BerAKHLAK tetap; penggantiannya setelah ada data memerlukan versi instrumen/migrasi, bukan pengeditan langsung. Lima indikator tematik melekat pada tiap periode: administrator kabupaten mengganti tema dan butirnya pada laman Metode selama periode draf, dan sejak periode dibuka butir tematik terkunci. Periode yang dibuat sebelum v1.9 tidak memiliki indikator tematik. Bobot komposisi dapat diubah administrator kabupaten per periode selama draf dan terkunci sejak periode dibuka.
 
@@ -186,7 +199,9 @@ Skor adalah hasil kuantitatif rubrik. Aplikasi tidak menetapkan predikat resmi k
 | scripts/import-siasn.py | Impor OPD, pegawai, akun, dan atasan langsung dari ekspor SIASN |
 | resources/app.css | Sumber tema dan stylesheet |
 | dist/ | Pratinjau statis |
-| tests/scoring.php | Pengujian aturan penilaian |
+| tests/scoring.php | Pengujian aturan penilaian, termasuk nilai akhir dengan indikator tematik |
+| tests/*_flows.php | Pengujian alur HTTP terhadap database uji, mis. `thematic_flows.php` untuk indikator tematik |
+| e2e/ | Pengujian browser Playwright, mis. `tematik.spec.ts` untuk formulir tematik dan formulir 12 indikator |
 | docs/VALIDASI.md | Hasil verifikasi dan langkah uji server |
 
 ## Mengubah tampilan
@@ -206,4 +221,11 @@ Warna di `resources/app.css` ditulis sebagai `var(--ui-token, #warna-terang)`. T
 php tests/scoring.php
 ```
 
-Pengujian meliputi tiga rumus bobot, draf, jawaban tidak lengkap, skala, kelompok kecil, komposisi tidak didukung, dan jumlah penilai dalam kelompok.
+Pengujian meliputi tiga rumus bobot, draf, jawaban tidak lengkap, skala, kelompok kecil, komposisi tidak didukung, jumlah penilai dalam kelompok, serta indikator tematik: nilai akhir rata-rata 12 indikator, rincian per kategori, dan penolakan jawaban tanpa butir tematik.
+
+Regresi lengkap (unit, integrasi DB, alur HTTP, dan browser) memakai database `sikap360_test` dan server lokal yang sudah berjalan:
+
+```bash
+DB_DATABASE=sikap360_test APP_URL=http://127.0.0.1:8791 php -S 127.0.0.1:8791 -t public
+bash .qa/bin/run-all.sh http://127.0.0.1:8791
+```
