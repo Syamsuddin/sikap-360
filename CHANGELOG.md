@@ -4,6 +4,22 @@ Semua perubahan penting pada SIKAP 360 dicatat di berkas ini. Format mengikuti [
 
 Instalasi yang dibuat pada versi lebih lama memerlukan migrasi database yang tercantum pada tiap versi (lihat `database/`). Instalasi baru cukup memakai `database/schema.sql`.
 
+## [Belum dirilis]
+
+Tidak ada migrasi database.
+
+### Ditambahkan
+- Status aktif/nonaktif pegawai dari tabel Data pegawai, lewat dialog konfirmasi yang menjelaskan akibatnya dan memperingatkan bila pegawai itu atasan langsung pegawai aktif. Administrator kabupaten untuk semua pegawai; admin OPD untuk pegawai OPD-nya, kecuali administrator kabupaten. Akun sendiri dan administrator kabupaten terakhir tidak dapat dinonaktifkan, dan pegawai di OPD nonaktif tidak dapat diaktifkan. Perubahan tercatat di log audit. Aksi API baru `employee_status`.
+- Penanda "Dikecualikan" pada distribusi penilai dan jumlah penugasan yang dikecualikan di rincian periode.
+
+### Diubah
+- Penilaian hanya bagi pegawai aktif. Penugasan yang melibatkan pegawai nonaktif tidak dihapus, tetapi dikecualikan dari daftar tugas penilai, simpan dan kirim penilaian, perhitungan nilai, Dashboard admin, kolom progres periode, dan syarat publikasi; semuanya berlaku lagi bila pegawai diaktifkan kembali. Sebelumnya penugasan seperti itu tetap dihitung dan dapat menahan publikasi karena penilai nonaktif tidak dapat masuk.
+- Membuka periode draf dengan komposisi yang tidak sah karena penilai nonaktif ditolak dengan menyebut nama pegawainya. Saat membuka kembali atau mempublikasikan periode, pegawai seperti itu dikecualikan (tanpa nilai) agar periode tidak tertahan, dan jumlahnya disebut di notifikasi.
+- Tabel Data pegawai: nama, unit, dan jabatan boleh terbungkus, NIP pindah ke bawah nama pada layar ≤1180 px, dan label akun pindah ke bawah nama di ponsel, sehingga tombol Edit dan Nonaktifkan tetap terlihat tanpa menggeser tabel. Baris pegawai nonaktif diredupkan.
+
+### Diperbaiki
+- Buat penugasan dari struktur tidak lagi memakai atasan langsung yang nonaktif sebagai penilai atasan; pegawai yang atasannya nonaktif dilewati dengan catatan agar atasan pengganti ditetapkan.
+
 ## [1.12.0] - 2026-10-09
 
 Tidak ada migrasi database.

@@ -73,3 +73,8 @@
 .period-cell{white-space:normal;min-width:150px}
 /* Deret tombol di bagian periode terpilih (Atur bobot & tematik, Tambah penilai, Buka periode) turun ke baris berikutnya pada layar sempit, agar halaman tidak melebar. */
 .form-actions .flexline{flex-wrap:wrap;justify-content:flex-end}@media(max-width:720px){.form-actions>.flexline{width:100%}.form-actions>.flexline .btn{flex:1 1 auto}}
+/* Data pegawai: baris pegawai nonaktif diredupkan; tombol Edit dan Nonaktifkan/Aktifkan sebaris. */
+.row-inactive td{opacity:.62}.row-inactive td:last-child{opacity:1}
+/* Tabel Data pegawai: nama/unit dan jabatan boleh terbungkus agar kolom Akun serta tombol Edit dan Nonaktifkan tetap terlihat tanpa menggeser tabel. */
+.employee-table td:nth-child(1),.employee-table td:nth-child(3){white-space:normal}.employee-table td:nth-child(1){min-width:200px}.employee-table td:nth-child(3){min-width:150px}.employee-table td:last-child .row-actions{flex-wrap:nowrap}
+.show-medium-only{display:none}@media(max-width:1180px){.show-medium-only{display:inline}.employee-table td:last-child .row-actions{flex-wrap:wrap;flex-direction:column;align-items:flex-end;gap:4px}}@media(max-width:720px){.employee-table td:nth-child(1){min-width:0}}

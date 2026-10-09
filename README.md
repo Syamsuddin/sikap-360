@@ -26,7 +26,7 @@ Satu instalasi melayani satu kabupaten (nama dinamis, bawaan Hulu Sungai Selatan
 - Draf parsial, validasi jawaban seluruh indikator periode, pengiriman satu atau beberapa draf lengkap.
 - Penguncian jawaban setelah dikirim, nomor versi draf untuk mencegah penimpaan antar sesi.
 - Hasil pribadi gabungan, grafik indikator, pilihan periode, dan cetak melalui browser.
-- Penambahan/edit pegawai, akun ASN, perubahan kata sandi, ekspor CSV.
+- Penambahan/edit pegawai, akun ASN, status aktif/nonaktif pegawai, perubahan kata sandi, ekspor CSV.
 - Pembuatan periode, distribusi penilai, buka/tutup/buka kembali, publikasi, dan hapus periode draf yang belum memiliki penugasan, langsung dari tabel periode dengan kolom progres per periode.
 - Audit tindakan di database, CSRF, sesi HttpOnly, PDO prepared statements, pembatasan percobaan login.
 
@@ -124,6 +124,8 @@ python3 scripts/import-siasn.py ekspor-siasn.xlsx --apply --admin email.admin@in
 10. Setelah semua penugasan selesai, tutup periode dan publikasikan hasil.
 11. Jika periode ditutup terlalu cepat, admin membuka kembali periode yang belum dipublikasikan. Pengisian mengikuti status periode, bukan rentang tanggal: selama periode dibuka, ASN tetap dapat menyimpan dan mengirim penilaian.
 12. ASN memilih periode yang dipublikasikan pada Hasil penilaian.
+
+Penilaian hanya bagi pegawai aktif. Administrator menonaktifkan atau mengaktifkan kembali pegawai dari tabel Data pegawai (admin OPD: pegawai OPD-nya, tidak untuk administrator kabupaten; tidak untuk akun sendiri). Pegawai nonaktif tidak dapat masuk, tidak dinilai, dan tidak menilai. Penugasan yang melibatkannya tidak dihapus, tetapi dikecualikan dari daftar tugas penilai, perhitungan nilai, progres, dan syarat publikasi, lalu berlaku lagi bila pegawai diaktifkan kembali. Buat penugasan melewati pegawai yang atasan langsungnya nonaktif. Saat membuka periode draf, komposisi yang menjadi tidak sah karena penilai nonaktif ditolak dengan nama pegawainya; saat membuka kembali atau mempublikasikan, pegawai tersebut dikecualikan (tanpa nilai) agar periode tidak tertahan.
 
 Pegawai yang belum diberi pasangan penilai belum menjadi peserta penilaian pada periode tersebut. Penilaian diri sendiri ditolak. Pasangan penilai yang sama tidak bisa didaftarkan dua kali untuk pegawai/periode yang sama.
 
